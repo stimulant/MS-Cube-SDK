@@ -1,0 +1,19 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KinectTransport", "KinectTransport.vcxproj", "{0BBF20F3-43AC-4E2C-80F8-3BE564172B5D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0BBF20F3-43AC-4E2C-80F8-3BE564172B5D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0BBF20F3-43AC-4E2C-80F8-3BE564172B5D}.Debug|Win32.Build.0 = Debug|Win32
+		{0BBF20F3-43AC-4E2C-80F8-3BE564172B5D}.Release|Win32.ActiveCfg = Release|Win32
+		{0BBF20F3-43AC-4E2C-80F8-3BE564172B5D}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

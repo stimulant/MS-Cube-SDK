@@ -1,0 +1,40 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+# temp files
+*.opensdf
+.DS_Store
+*.vcxproj.user
+*.sdf
+*.*~
+*.swp
+*.obj
+Thumbs.db
+
+# bad VS files
+*.ipch
+*.aps
+*.sdf
+*.suo
+*.vcxproj.user
+
+# log files
+*.log
+
+# build directories
+KinectTransport/Debug
+KinectTransport/Release
+KinectTransport/ipch
+
+# assets
