@@ -1,8 +1,8 @@
-// Win32 Dialog.cpp : Defines the entry point for the application.
-//
-
 #include "stdafx.h"
 #include "resource.h"
+
+#include "Kinect.h"
+#include <winsock.h>
 
 #define TRAYICONID	1//				ID number for the Notify Icon
 #define SWM_TRAYMSG	WM_APP//		the message ID sent to our window
@@ -14,6 +14,18 @@
 // Global Variables:
 HINSTANCE		hInst;	// current instance
 NOTIFYICONDATA	niData;	// notify icon data
+
+// Global Kinect Variables and functions
+IKinectSensor*				kinectSensor;
+ICoordinateMapper*			coordinateMapper;
+IBodyFrameReader*			bodyFrameReader;
+WAITABLE_HANDLE				kinectFrameEvent;
+void UpdateKinect();
+
+// Global Socket Variables and functions
+SOCKET hSocket;
+bool ConnectToHost(int PortNo, char* IPAddress);
+void CloseConnection();
 
 // Forward declarations of functions included in this code module:
 BOOL				InitInstance(HINSTANCE, int);
@@ -36,14 +48,38 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	if (!InitInstance (hInstance, nCmdShow)) return FALSE;
 	hAccelTable = LoadAccelerators(hInstance, (LPCTSTR)IDC_KINECTTRANSPORT);
 
+	// setup Kinect
+	HRESULT hr = GetDefaultKinectSensor(&kinectSensor);
+    if (SUCCEEDED(hr) && kinectSensor)
+    {
+        IBodyFrameSource* pBodyFrameSource = NULL;
+        hr = kinectSensor->Open();
+        if (SUCCEEDED(hr))
+            hr = kinectSensor->get_CoordinateMapper(&coordinateMapper);
+        if (SUCCEEDED(hr))
+            hr = kinectSensor->get_BodyFrameSource(&pBodyFrameSource);
+        if (SUCCEEDED(hr))
+            hr = pBodyFrameSource->OpenReader(&bodyFrameReader);
+		if (SUCCEEDED(hr))
+			hr = bodyFrameReader->SubscribeFrameArrived(&kinectFrameEvent);
+		if (pBodyFrameSource != NULL)
+			pBodyFrameSource->Release();
+    }
+
+	// try to connect to localhost
+	bool connected = ConnectToHost(3000, "127.0.0.1");
+	if (connected)
+		CloseConnection();
+
 	// Main message loop:
-	while (GetMessage(&msg, NULL, 0, 0))
+	while (true)
 	{
-		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg)||
-			!IsDialogMessage(msg.hwnd,&msg) ) 
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
+		UpdateKinect();
+
+		MSG msg;
+		while( ::PeekMessage( &msg, NULL, 0, 0, PM_REMOVE ) ) {
+			::TranslateMessage( &msg );
+			::DispatchMessage( &msg );
 		}
 	}
 	return (int) msg.wParam;
@@ -252,4 +288,105 @@ LRESULT CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 	return FALSE;
+}
+
+void UpdateKinect()
+{
+	DWORD dwResult = WaitForSingleObjectEx(reinterpret_cast<HANDLE>(kinectFrameEvent), 0, FALSE);
+    if (WAIT_OBJECT_0 != dwResult)
+	{
+		return;
+	}
+
+	if (!bodyFrameReader)
+	{
+        return;
+	}
+
+    IBodyFrame* pBodyFrame = NULL;
+    HRESULT hr = bodyFrameReader->AcquireLatestFrame(&pBodyFrame);
+
+    if (SUCCEEDED(hr))
+    {
+        INT64 nTime = 0;
+        hr = pBodyFrame->get_RelativeTime(&nTime);
+        IBody* ppBodies[BODY_COUNT] = {0};
+
+        if (SUCCEEDED(hr))
+            hr = pBodyFrame->GetAndRefreshBodyData(_countof(ppBodies), ppBodies);
+		
+        if (SUCCEEDED(hr))
+		{
+			/*
+			mSkeletonCount = 0;
+			for (int i = 0; i < BODY_COUNT && mSkeletonCount < DBC_BODY_COUNT; ++i)
+            {
+                IBody* pBody = ppBodies[i];
+				if (pBody)
+                {
+					BOOLEAN bTracked = false;
+                    hr = pBody->get_IsTracked(&bTracked);
+					
+                    if (SUCCEEDED(hr) && bTracked)
+                    {
+						mSkeletons[mSkeletonCount].update(pBody);
+						mSkeletonCount++;
+					}
+				}
+			}*/
+		}
+		
+        for (int i = 0; i < _countof(ppBodies); ++i)
+		{
+			if (ppBodies[i] != NULL)
+				ppBodies[i]->Release();
+		}
+    }
+	
+	if (pBodyFrame != NULL)
+		pBodyFrame->Release();
+}
+
+bool ConnectToHost(int PortNo, char* IPAddress)
+{
+    // Start winsock
+    WSADATA wsadata;
+    int error = WSAStartup(0x0202, &wsadata);
+    if (error)
+        return false;
+
+    // Make sure we have winsock v2
+    if (wsadata.wVersion != 0x0202)
+    {
+        WSACleanup();
+        return false;
+    }
+
+    // Setup socket address
+    SOCKADDR_IN target;
+    target.sin_family = AF_INET;
+    target.sin_port = htons (PortNo);
+    target.sin_addr.s_addr = inet_addr(IPAddress);
+
+	// Create socket
+    hSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (hSocket == INVALID_SOCKET)
+    {
+        return false;
+    }  
+
+    // Connect
+    if (connect(hSocket, (SOCKADDR *)&target, sizeof(target)) == SOCKET_ERROR)
+    {
+        return false;
+    }
+    else
+        return true;
+}
+
+void CloseConnection()
+{
+    if (hSocket)
+        closesocket(hSocket);
+    WSACleanup();
 }

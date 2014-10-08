@@ -123,7 +123,7 @@ END
 // RT_MANIFEST
 //
 
-IDR_MANIFEST            RT_MANIFEST             "KinectTransport.manifest"
+//IDR_MANIFEST            RT_MANIFEST             "KinectTransport.manifest"
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////
 
