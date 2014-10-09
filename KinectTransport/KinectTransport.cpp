@@ -390,3 +390,50 @@ void CloseConnection()
         closesocket(hSocket);
     WSACleanup();
 }
+
+void SendSkeletonUpdate(IBody** ppBodies)
+{
+	if (hSocket)
+	{
+		// first get skeleton presence
+		byte skeletonPresent = 0;
+		byte skeletonCount = 0;
+		for (int i = 0; i < BODY_COUNT; ++i)
+        {
+            IBody* pBody = ppBodies[i];
+			if (pBody)
+            {
+				BOOLEAN bTracked = false;
+                if (SUCCEEDED(pBody->get_IsTracked(&bTracked)) && bTracked)
+                {
+					skeletonPresent &= (1 << i);
+					skeletonCount++;
+				}
+			}
+		}
+
+		// maximum size of frame is 1208 bytes
+		byte frame[1208];
+
+		// write header
+		frame[0] = 0x0; // command 0
+
+		// write data lenght
+		unsigned short dataLength = 5 + 200 * skeletonCount;
+		memcpy(frame+1, &dataLength, 2);
+
+		// write time stamp
+		SYSTEMTIME systemTime;
+		GetSystemTime(&systemTime);
+		memcpy(frame+3, &systemTime, 8);
+
+		// write skeleton presence
+		memcpy(frame+4, &skeletonPresent, 1);
+		
+		// write skeleton joints
+		for (int i = 0; i < 6; ++i)
+        {
+			// only send skeleton data if this skeleton is present
+		}
+	}
+}
