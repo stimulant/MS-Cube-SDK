@@ -1,0 +1,21 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "Debug Server for Kinect.",
+  "main": "server.js",
+  "scripts": {
+    "test": "nodemon server.js",
+    "start": "node server.js"
+  },
+  "author": "Stimulant",
+  "license": "None",
+  "dependencies": {
+    "socket.io" : "latest",
+    "express" : "latest",
+    "binary" : "latest"
+    },
+  "repository": {
+    "type": "git",
+    "url": ""
+  }
+}

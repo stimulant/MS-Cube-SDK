@@ -26,6 +26,7 @@ void UpdateKinect();
 SOCKET hSocket;
 bool ConnectToHost(int PortNo, char* IPAddress);
 void CloseConnection();
+void SendSkeletonUpdate(IBody** ppBodies);
 
 // Forward declarations of functions included in this code module:
 BOOL				InitInstance(HINSTANCE, int);
@@ -68,8 +69,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	// try to connect to localhost
 	bool connected = ConnectToHost(3000, "127.0.0.1");
-	if (connected)
-		CloseConnection();
 
 	// Main message loop:
 	while (true)
@@ -82,6 +81,11 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			::DispatchMessage( &msg );
 		}
 	}
+
+	// disconnect from localhost
+	if (connected)
+		CloseConnection();
+
 	return (int) msg.wParam;
 }
 
@@ -317,23 +321,8 @@ void UpdateKinect()
 		
         if (SUCCEEDED(hr))
 		{
-			/*
-			mSkeletonCount = 0;
-			for (int i = 0; i < BODY_COUNT && mSkeletonCount < DBC_BODY_COUNT; ++i)
-            {
-                IBody* pBody = ppBodies[i];
-				if (pBody)
-                {
-					BOOLEAN bTracked = false;
-                    hr = pBody->get_IsTracked(&bTracked);
-					
-                    if (SUCCEEDED(hr) && bTracked)
-                    {
-						mSkeletons[mSkeletonCount].update(pBody);
-						mSkeletonCount++;
-					}
-				}
-			}*/
+			// send skeletons as an update
+			SendSkeletonUpdate(ppBodies);
 		}
 		
         for (int i = 0; i < _countof(ppBodies); ++i)
@@ -391,49 +380,69 @@ void CloseConnection()
     WSACleanup();
 }
 
+struct SkeletonUpdateHeader {
+	char command;
+	unsigned short dataLength;
+	SYSTEMTIME systemTime;
+	bool skeletonsPresent[6];
+	unsigned short skeletonCount;
+};
+
 void SendSkeletonUpdate(IBody** ppBodies)
 {
 	if (hSocket)
 	{
+		// maximum size of frame is 1208 bytes
+		char frame[1208];
+
+		SkeletonUpdateHeader header;
+		memset(&header, 0, sizeof(SkeletonUpdateHeader));
+
 		// first get skeleton presence
-		byte skeletonPresent = 0;
-		byte skeletonCount = 0;
 		for (int i = 0; i < BODY_COUNT; ++i)
         {
             IBody* pBody = ppBodies[i];
 			if (pBody)
             {
 				BOOLEAN bTracked = false;
-                if (SUCCEEDED(pBody->get_IsTracked(&bTracked)) && bTracked)
-                {
-					skeletonPresent &= (1 << i);
-					skeletonCount++;
+				if ( SUCCEEDED(pBody->get_IsTracked(&bTracked)) )
+				{
+					if (bTracked)
+					{
+						header.skeletonsPresent[i] = true;
+						header.skeletonCount++;
+					}
 				}
 			}
 		}
 
-		// maximum size of frame is 1208 bytes
-		byte frame[1208];
-
 		// write header
-		frame[0] = 0x0; // command 0
-
-		// write data lenght
-		unsigned short dataLength = 5 + 200 * skeletonCount;
-		memcpy(frame+1, &dataLength, 2);
-
-		// write time stamp
-		SYSTEMTIME systemTime;
-		GetSystemTime(&systemTime);
-		memcpy(frame+3, &systemTime, 8);
-
-		// write skeleton presence
-		memcpy(frame+4, &skeletonPresent, 1);
+		header.command = 0x0;				// command 0
+		GetSystemTime(&header.systemTime);	// system time
+		memcpy(frame, &header, sizeof(SkeletonUpdateHeader));
 		
 		// write skeleton joints
+		int byteOffset = sizeof(SkeletonUpdateHeader);
 		for (int i = 0; i < 6; ++i)
         {
 			// only send skeleton data if this skeleton is present
+			if (header.skeletonsPresent[i])
+			{
+				Joint joints[JointType_Count]; 
+				HRESULT hr = ppBodies[i]->GetJoints(_countof(joints), joints);
+				if (SUCCEEDED(hr))
+				{
+					for (int j = 0; j < _countof(joints); ++j)
+					{
+						memcpy(&(frame[byteOffset]), &joints[j].Position.X, sizeof(float)); byteOffset += 4;
+						memcpy(&(frame[byteOffset]), &joints[j].Position.Y, sizeof(float)); byteOffset += 4;
+						memcpy(&(frame[byteOffset]), &joints[j].Position.Z, sizeof(float)); byteOffset += 4;
+					}
+				}
+			}
 		}
+
+		// send it out the socket
+		send(hSocket, frame, byteOffset, 0);
 	}
 }

@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<script src="/socket.io/socket.io.js" type="text/javascript"></script>
+<script src="vendor/jquery.min.js" type="text/javascript"7></script>
+<script src="vendor/jquery.timeago.js" type="text/javascript"></script>
+<script>
+jQuery.data( $( "head" )[ 0 ], "data", {
+  server_url: "%server_url%"
+});
+</script>
+<script src="application.js" type="text/javascript"></script>
+<link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+	<h1>Kinect Debug</h1>
+  <section>
+		<table id="clientTable">
+      <colgroup><col></col></colgroup>
+			<thead><tr>
+				<th scope="col">Skeleton</th>
+				<th scope="col">Joint</th>
+				<th scope="col">X</th>
+        <th scope="col">Y</th>
+        <th scope="col">Z</th>
+			</tr></thead>
+      <tbody id="skeletons"></tbody>
+		</table>
+	</section>
+</body>
+</html>

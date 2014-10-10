@@ -1,13 +1,18 @@
 var net = require('net');
 
-var server = net.createServer(function (socket) {
-  socket.write('Echo server\r\n');
-  socket.pipe(socket);
-});
+var HOST = '127.0.0.1';
+var PORT = 3000;
 
-process.on('uncaughtException', function (err) {
-  console.error(err.stack);
-  console.log("Node NOT Exiting...");
-});
-
-server.listen(3000, '127.0.0.1');
+// start tcp server
+net.createServer(function(socket) {
+    console.log('CONNECTED: ' + socket.remoteAddress +':'+ socket.remotePort);
+    socket.on('data', function(data) {
+        console.log('DATA ' + socket.remoteAddress + ': ' + data);
+    });
+    
+    socket.on('close', function(data) {
+        console.log('CLOSED: ' + socket.remoteAddress +' '+ socket.remotePort);
+    });
+    
+}).listen(PORT, HOST);
+console.log('Server listening on ' + HOST +':'+ PORT);
