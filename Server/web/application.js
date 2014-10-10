@@ -7,7 +7,15 @@ $.timeago.settings.strings.seconds = "%d seconds";
 socket.on('connect', function(){});
 
 // update clients list
-socket.on('updateclients', function(data) { updatestatus(data); });
+socket.on('updateData', function(data) {
+	//console.log(data.skeletonCount);
+	if (data.skeletonCount > 0)
+	{
+		console.log("x: " + data.skeletons[0][0].x +
+					"y: " + data.skeletons[0][0].y + 
+					"z: " + data.skeletons[0][0].z);
+	}
+});
 
 // send updated parameters on an interval
 setInterval(

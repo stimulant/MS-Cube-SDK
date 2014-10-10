@@ -20,13 +20,13 @@ IKinectSensor*				kinectSensor;
 ICoordinateMapper*			coordinateMapper;
 IBodyFrameReader*			bodyFrameReader;
 WAITABLE_HANDLE				kinectFrameEvent;
-void UpdateKinect();
+bool UpdateKinect();
 
 // Global Socket Variables and functions
 SOCKET hSocket;
 bool ConnectToHost(int PortNo, char* IPAddress);
 void CloseConnection();
-void SendSkeletonUpdate(IBody** ppBodies);
+bool SendSkeletonUpdate(IBody** ppBodies);
 
 // Forward declarations of functions included in this code module:
 BOOL				InitInstance(HINSTANCE, int);
@@ -68,12 +68,17 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
     }
 
 	// try to connect to localhost
-	bool connected = ConnectToHost(3000, "127.0.0.1");
+	bool connected = false;
 
 	// Main message loop:
 	while (true)
 	{
-		UpdateKinect();
+		// try to connect if we aren't connected
+		if (!connected)
+			connected = ConnectToHost(3000, "127.0.0.1");
+		
+		if (connected)
+			connected = UpdateKinect();
 
 		MSG msg;
 		while( ::PeekMessage( &msg, NULL, 0, 0, PM_REMOVE ) ) {
@@ -294,17 +299,19 @@ LRESULT CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return FALSE;
 }
 
-void UpdateKinect()
+bool UpdateKinect()
 {
+	bool connected = true;
+
 	DWORD dwResult = WaitForSingleObjectEx(reinterpret_cast<HANDLE>(kinectFrameEvent), 0, FALSE);
     if (WAIT_OBJECT_0 != dwResult)
 	{
-		return;
+		return connected;
 	}
 
 	if (!bodyFrameReader)
 	{
-        return;
+        return connected;
 	}
 
     IBodyFrame* pBodyFrame = NULL;
@@ -322,7 +329,7 @@ void UpdateKinect()
         if (SUCCEEDED(hr))
 		{
 			// send skeletons as an update
-			SendSkeletonUpdate(ppBodies);
+			connected = SendSkeletonUpdate(ppBodies);
 		}
 		
         for (int i = 0; i < _countof(ppBodies); ++i)
@@ -334,6 +341,8 @@ void UpdateKinect()
 	
 	if (pBodyFrame != NULL)
 		pBodyFrame->Release();
+
+	return connected;
 }
 
 bool ConnectToHost(int PortNo, char* IPAddress)
@@ -380,15 +389,17 @@ void CloseConnection()
     WSACleanup();
 }
 
+#pragma pack(push, 1) // exact fit - no padding
 struct SkeletonUpdateHeader {
 	char command;
 	unsigned short dataLength;
 	SYSTEMTIME systemTime;
-	bool skeletonsPresent[6];
+	char skeletonsPresent[6];
 	unsigned short skeletonCount;
 };
+#pragma pack(pop)
 
-void SendSkeletonUpdate(IBody** ppBodies)
+bool SendSkeletonUpdate(IBody** ppBodies)
 {
 	if (hSocket)
 	{
@@ -409,7 +420,7 @@ void SendSkeletonUpdate(IBody** ppBodies)
 				{
 					if (bTracked)
 					{
-						header.skeletonsPresent[i] = true;
+						header.skeletonsPresent[i] = 1;
 						header.skeletonCount++;
 					}
 				}
@@ -417,8 +428,11 @@ void SendSkeletonUpdate(IBody** ppBodies)
 		}
 
 		// write header
+		header.dataLength = header.skeletonCount * JointType_Count * 3 * 4;
 		header.command = 0x0;				// command 0
-		GetSystemTime(&header.systemTime);	// system time
+		GetSystemTime(&(header.systemTime));	// system time
+		int size = sizeof(SYSTEMTIME);
+
 		memcpy(frame, &header, sizeof(SkeletonUpdateHeader));
 		
 		// write skeleton joints
@@ -426,7 +440,7 @@ void SendSkeletonUpdate(IBody** ppBodies)
 		for (int i = 0; i < 6; ++i)
         {
 			// only send skeleton data if this skeleton is present
-			if (header.skeletonsPresent[i])
+			if (header.skeletonsPresent[i] == 1)
 			{
 				Joint joints[JointType_Count]; 
 				HRESULT hr = ppBodies[i]->GetJoints(_countof(joints), joints);
@@ -443,6 +457,9 @@ void SendSkeletonUpdate(IBody** ppBodies)
 		}
 
 		// send it out the socket
-		send(hSocket, frame, byteOffset, 0);
+		int returnVal = send(hSocket, frame, byteOffset, 0);
+		if (returnVal == -1)
+			return false;
 	}
+	return true;
 }

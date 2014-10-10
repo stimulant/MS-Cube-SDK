@@ -6,25 +6,13 @@ var socketIO = require('socket.io');
 
 var webserver;
 var io;
+var elapsed = 0.0;
+var kinectData = {};
 
 function update()
 {
-	/*
-	this.elapsed += 1.0/30.0;
-	
-	if (this.updateSocket++ > 10)
-	{
-		var data = {};
-		data.clients = this.clients;
-		data.config = this.config;
-		this.io.sockets.emit('updateclients', data);
-		updateSocket = 0;
-	}
-
-	// update heartbeat for clients
-	for (var i in this.clients )
-		this.updateClientHeartbeat(this.clients[i]);
-	*/
+	elapsed += 1.0/30.0;
+	io.sockets.emit('updateData', kinectData);
 }
 
 function connect(socket)
@@ -49,8 +37,9 @@ function connect(socket)
 	*/
 }
 
-function start(host, port)
+function start(host, port, kData)
 {
+	kinectData = kData;
 	webserver = http.createServer(webapp);
 	io = socketIO.listen(webserver);
 	console.log( "Socket.io listening on port", port );
