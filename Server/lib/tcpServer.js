@@ -1,5 +1,4 @@
 var net = require('net');
-var binary = require('binary');
 
 function start(host, port, kinectData) {
 
@@ -9,61 +8,23 @@ function start(host, port, kinectData) {
 		var remotePort = socket.remotePort;
 
 		socket.on('data', function(data) {
-			var skeletonIdx = 0;
-			var jointIdx = 0;
-			var binaryBuffer = binary()
-				.word8lu('command')
-				.word16lu('dataLength')
-				.buffer('systemTime', 16)
-				.word8lu('skeleton1Present')
-				.word8lu('skeleton2Present')
-				.word8lu('skeleton3Present')
-				.word8lu('skeleton4Present')
-				.word8lu('skeleton5Present')
-				.word8lu('skeleton6Present')
-				.word16lu('skeletonCount')
-				.tap(function (vars) {
-					//console.log('Reading skeletons');
-					//console.dir(vars);
-					skeletonIdx = 0;
-					kinectData.skeletonCount = vars.skeletonCount;
-				})
-				.loop(function (end1, vars1) {
-					// read out skeletons
-					if (skeletonIdx >= kinectData.skeletonCount) {
-						//console.log("end1");
-						end1();
-					}
+			//console.log(data.length);
+			var offset = 0;
 
-					// read out joints
-					jointIdx = 0;
-					this.loop(function (end2, vars) {
-						//console.log(vars.jointCount);
+			// parse out main header
+			var command		= data.readUInt8(offset); offset += 1;
+			var dataLength	= data.readUInt16LE(offset); offset += 2;
+			offset += 6;	// skeletons preset
+			kinectData.skeletonCount = data.readUInt16LE(offset); offset += 2;
 
-						if (jointIdx >= 25) {
-							//console.log("end2");
-							end2();
-						}
-
-						// read out joint position
-						this
-							.word32lu('x')
-							.word32lu('y')
-							.word32lu('z')
-							.tap(function (vars) {
-								//console.log("  vars: " + jointIdx);
-								kinectData.skeletons[skeletonIdx][jointIdx].x = vars.x;
-								kinectData.skeletons[skeletonIdx][jointIdx].y = vars.y;
-								kinectData.skeletons[skeletonIdx][jointIdx].z = vars.z;
-						});
-
-						jointIdx++;
-					});
-
-					skeletonIdx++;
-				});
-
-			binaryBuffer.write(data);
+			// parse joint data
+			for (var s=0; s<kinectData.skeletonCount; s++) {
+				for (var j=0; j<25; j++) {
+					kinectData.skeletons[s][j].x = data.readFloatLE(offset);	offset += 4;
+					kinectData.skeletons[s][j].y = data.readFloatLE(offset);	offset += 4;
+					kinectData.skeletons[s][j].z = data.readFloatLE(offset);	offset += 4;
+				}
+			}
 		});
 		
 		socket.on('close', function(data) {

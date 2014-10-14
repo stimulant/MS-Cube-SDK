@@ -14,17 +14,47 @@ jQuery.data( $( "head" )[ 0 ], "data", {
 </head>
 <body>
 	<h1>Kinect Debug</h1>
-  <section>
-		<table id="clientTable">
-      <colgroup><col></col></colgroup>
-			<thead><tr>
-				<th scope="col">Skeleton</th>
-				<th scope="col">Joint</th>
-				<th scope="col">X</th>
-        <th scope="col">Y</th>
-        <th scope="col">Z</th>
-			</tr></thead>
-      <tbody id="skeletons"></tbody>
+	<section>
+		<canvas id="skeletonCanvas" width="400" height="400" background-color="#000000"></canvas>
+	</section>
+	<section>
+		<table id="skeletonTable">
+			<colgroup><col></col></colgroup>
+			<thead>
+				<tr>
+					<th scope="col">Joint</th>
+					<th scope="col">X</th>
+					<th scope="col">Y</th>
+					<th scope="col">Z</th>
+				</tr>
+			</thead>
+			<tbody id="skeletons">
+				<tr><td>0</td><td id="joint_x_0"></td><td id="joint_y_0"></td><td id="joint_z_0"></td></tr>
+				<tr><td>1</td><td id="joint_x_1"/><td id="joint_y_1"/><td id="joint_z_1"/></tr>
+				<tr><td>2</td><td id="joint_x_2"/><td id="joint_y_2"/><td id="joint_z_2"/></tr>
+				<tr><td>3</td><td id="joint_x_3"/><td id="joint_y_3"/><td id="joint_z_3"/></tr>
+				<tr><td>4</td><td id="joint_x_4"/><td id="joint_y_4"/><td id="joint_z_4"/></tr>
+				<tr><td>5</td><td id="joint_x_5"/><td id="joint_y_5"/><td id="joint_z_5"/></tr>
+				<tr><td>6</td><td id="joint_x_6"/><td id="joint_y_6"/><td id="joint_z_6"/></tr>
+				<tr><td>7</td><td id="joint_x_7"/><td id="joint_y_7"/><td id="joint_z_7"/></tr>
+				<tr><td>8</td><td id="joint_x_8"/><td id="joint_y_8"/><td id="joint_z_8"/></tr>
+				<tr><td>9</td><td id="joint_x_9"/><td id="joint_y_9"/><td id="joint_z_9"/></tr>
+				<tr><td>10</td><td id="joint_x_10"/><td id="joint_y_10"/><td id="joint_z_10"/></tr>
+				<tr><td>11</td><td id="joint_x_11"/><td id="joint_y_11"/><td id="joint_z_11"/></tr>
+				<tr><td>12</td><td id="joint_x_12"/><td id="joint_y_12"/><td id="joint_z_12"/></tr>
+				<tr><td>13</td><td id="joint_x_13"/><td id="joint_y_13"/><td id="joint_z_13"/></tr>
+				<tr><td>14</td><td id="joint_x_14"/><td id="joint_y_14"/><td id="joint_z_14"/></tr>
+				<tr><td>15</td><td id="joint_x_15"/><td id="joint_y_15"/><td id="joint_z_15"/></tr>
+				<tr><td>16</td><td id="joint_x_16"/><td id="joint_y_16"/><td id="joint_z_16"/></tr>
+				<tr><td>17</td><td id="joint_x_17"/><td id="joint_y_17"/><td id="joint_z_17"/></tr>
+				<tr><td>18</td><td id="joint_x_18"/><td id="joint_y_18"/><td id="joint_z_18"/></tr>
+				<tr><td>19</td><td id="joint_x_19"/><td id="joint_y_19"/><td id="joint_z_19"/></tr>
+				<tr><td>20</td><td id="joint_x_20"/><td id="joint_y_20"/><td id="joint_z_20"/></tr>
+				<tr><td>21</td><td id="joint_x_21"/><td id="joint_y_21"/><td id="joint_z_21"/></tr>
+				<tr><td>22</td><td id="joint_x_22"/><td id="joint_y_22"/><td id="joint_z_22"/></tr>
+				<tr><td>23</td><td id="joint_x_23"/><td id="joint_y_23"/><td id="joint_z_23"/></tr>
+				<tr><td>24</td><td id="joint_x_24"/><td id="joint_y_24"/><td id="joint_z_24"/></tr>
+			</tbody>
 		</table>
 	</section>
 </body>

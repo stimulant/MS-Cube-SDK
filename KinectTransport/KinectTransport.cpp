@@ -393,7 +393,6 @@ void CloseConnection()
 struct SkeletonUpdateHeader {
 	char command;
 	unsigned short dataLength;
-	SYSTEMTIME systemTime;
 	char skeletonsPresent[6];
 	unsigned short skeletonCount;
 };
@@ -429,10 +428,7 @@ bool SendSkeletonUpdate(IBody** ppBodies)
 
 		// write header
 		header.dataLength = header.skeletonCount * JointType_Count * 3 * 4;
-		header.command = 0x0;				// command 0
-		GetSystemTime(&(header.systemTime));	// system time
-		int size = sizeof(SYSTEMTIME);
-
+		header.command = 0x0;
 		memcpy(frame, &header, sizeof(SkeletonUpdateHeader));
 		
 		// write skeleton joints
