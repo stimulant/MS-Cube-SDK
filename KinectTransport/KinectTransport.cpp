@@ -19,8 +19,15 @@ NOTIFYICONDATA	niData;	// notify icon data
 IKinectSensor*				kinectSensor;
 ICoordinateMapper*			coordinateMapper;
 IBodyFrameReader*			bodyFrameReader;
-WAITABLE_HANDLE				kinectFrameEvent;
+IDepthFrameReader*			depthFrameReader;
+WAITABLE_HANDLE				bodyFrameEvent;
+WAITABLE_HANDLE				depthFrameEvent;
+const int					cDepthWidth  = 512;
+const int					cDepthHeight = 424;
+RGBQUAD*					pDepthRGBX;
 bool UpdateKinect();
+bool UpdateKinectSkeleton();
+bool UpdateKinectDepth();
 
 // Global Socket Variables and functions
 SOCKET hSocket;
@@ -53,19 +60,35 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	HRESULT hr = GetDefaultKinectSensor(&kinectSensor);
     if (SUCCEEDED(hr) && kinectSensor)
     {
-        IBodyFrameSource* pBodyFrameSource = NULL;
         hr = kinectSensor->Open();
         if (SUCCEEDED(hr))
             hr = kinectSensor->get_CoordinateMapper(&coordinateMapper);
+
+		// setup body frame
+		IBodyFrameSource* pBodyFrameSource = NULL;
         if (SUCCEEDED(hr))
             hr = kinectSensor->get_BodyFrameSource(&pBodyFrameSource);
         if (SUCCEEDED(hr))
             hr = pBodyFrameSource->OpenReader(&bodyFrameReader);
 		if (SUCCEEDED(hr))
-			hr = bodyFrameReader->SubscribeFrameArrived(&kinectFrameEvent);
+			hr = bodyFrameReader->SubscribeFrameArrived(&bodyFrameEvent);
 		if (pBodyFrameSource != NULL)
 			pBodyFrameSource->Release();
+
+		// setup depth frame
+		IDepthFrameSource* pDepthFrameSource = NULL;
+		if (SUCCEEDED(hr))
+            hr = kinectSensor->get_DepthFrameSource(&pDepthFrameSource);
+        if (SUCCEEDED(hr))
+            hr = pDepthFrameSource->OpenReader(&depthFrameReader);
+		if (SUCCEEDED(hr))
+			hr = depthFrameReader->SubscribeFrameArrived(&depthFrameEvent);
+		if (pDepthFrameSource != NULL)
+			pDepthFrameSource->Release();
     }
+
+	// create heap storage for depth pixel data in RGBX format
+    pDepthRGBX = new RGBQUAD[cDepthWidth * cDepthHeight];
 
 	// try to connect to localhost
 	bool connected = false;
@@ -301,9 +324,64 @@ LRESULT CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 bool UpdateKinect()
 {
+	if (!UpdateKinectSkeleton())
+		return false;
+	if (!UpdateKinectDepth())
+		return false;
+	return true;
+}
+
+bool UpdateKinectSkeleton()
+{
 	bool connected = true;
 
-	DWORD dwResult = WaitForSingleObjectEx(reinterpret_cast<HANDLE>(kinectFrameEvent), 0, FALSE);
+	DWORD dwResult = WaitForSingleObjectEx(reinterpret_cast<HANDLE>(bodyFrameEvent), 0, FALSE);
+    if (WAIT_OBJECT_0 != dwResult)
+	{
+		return connected;
+	}
+
+	if (!bodyFrameReader)
+	{
+        return connected;
+	}
+
+    IBodyFrame* pBodyFrame = NULL;
+    HRESULT hr = bodyFrameReader->AcquireLatestFrame(&pBodyFrame);
+
+    if (SUCCEEDED(hr))
+    {
+        INT64 nTime = 0;
+        hr = pBodyFrame->get_RelativeTime(&nTime);
+        IBody* ppBodies[BODY_COUNT] = {0};
+
+        if (SUCCEEDED(hr))
+            hr = pBodyFrame->GetAndRefreshBodyData(_countof(ppBodies), ppBodies);
+		
+        if (SUCCEEDED(hr))
+		{
+			// send skeletons as an update
+			connected = SendSkeletonUpdate(ppBodies);
+		}
+		
+        for (int i = 0; i < _countof(ppBodies); ++i)
+		{
+			if (ppBodies[i] != NULL)
+				ppBodies[i]->Release();
+		}
+    }
+	
+	if (pBodyFrame != NULL)
+		pBodyFrame->Release();
+
+	return connected;
+}
+
+bool UpdateKinectDepth()
+{
+	bool connected = true;
+
+	DWORD dwResult = WaitForSingleObjectEx(reinterpret_cast<HANDLE>(depthFrameEvent), 0, FALSE);
     if (WAIT_OBJECT_0 != dwResult)
 	{
 		return connected;
