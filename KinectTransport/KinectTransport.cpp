@@ -25,6 +25,8 @@ WAITABLE_HANDLE				depthFrameEvent;
 const int					cDepthWidth  = 512;
 const int					cDepthHeight = 424;
 RGBQUAD*					pDepthRGBX;
+char*						pDepthFrame;
+
 bool UpdateKinect();
 bool UpdateKinectSkeleton();
 bool UpdateKinectDepth();
@@ -34,6 +36,7 @@ SOCKET hSocket;
 bool ConnectToHost(int PortNo, char* IPAddress);
 void CloseConnection();
 bool SendSkeletonUpdate(IBody** ppBodies);
+bool SendDepthUpdate(int nWidth, int nHeight, UINT16 *pBuffer, USHORT nMinDepth, USHORT nMaxDepth);
 
 // Forward declarations of functions included in this code module:
 BOOL				InitInstance(HINSTANCE, int);
@@ -89,6 +92,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	// create heap storage for depth pixel data in RGBX format
     pDepthRGBX = new RGBQUAD[cDepthWidth * cDepthHeight];
+
+	// maximum size of frame is 247815 bytes (512x424 + 7)
+	pDepthFrame = new char[247815];
 
 	// try to connect to localhost
 	bool connected = false;
@@ -163,7 +169,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     niData.uCallbackMessage = SWM_TRAYMSG;
 
 	// tooltip message
-    lstrcpyn(niData.szTip, _T("Time flies like an arrow but\n   fruit flies like a banana!"), sizeof(niData.szTip)/sizeof(TCHAR));
+    lstrcpyn(niData.szTip, _T("Kinect Transport\nis running."), sizeof(niData.szTip)/sizeof(TCHAR));
 
 	Shell_NotifyIcon(NIM_ADD,&niData);
 
@@ -392,33 +398,47 @@ bool UpdateKinectDepth()
         return connected;
 	}
 
-    IBodyFrame* pBodyFrame = NULL;
-    HRESULT hr = bodyFrameReader->AcquireLatestFrame(&pBodyFrame);
+    IDepthFrame* pDepthFrame = NULL;
+    HRESULT hr = depthFrameReader->AcquireLatestFrame(&pDepthFrame);
+
+	INT64 nTime = 0;
+    IFrameDescription* pFrameDescription = NULL;
+    int nWidth = 0;
+    int nHeight = 0;
+    USHORT nDepthMinReliableDistance = 0;
+    USHORT nDepthMaxReliableDistance = 0;
+    UINT nBufferSize = 0;
+    UINT16 *pBuffer = NULL;
 
     if (SUCCEEDED(hr))
-    {
-        INT64 nTime = 0;
-        hr = pBodyFrame->get_RelativeTime(&nTime);
-        IBody* ppBodies[BODY_COUNT] = {0};
+        hr = pDepthFrame->get_RelativeTime(&nTime);
 
-        if (SUCCEEDED(hr))
-            hr = pBodyFrame->GetAndRefreshBodyData(_countof(ppBodies), ppBodies);
-		
-        if (SUCCEEDED(hr))
-		{
-			// send skeletons as an update
-			connected = SendSkeletonUpdate(ppBodies);
-		}
-		
-        for (int i = 0; i < _countof(ppBodies); ++i)
-		{
-			if (ppBodies[i] != NULL)
-				ppBodies[i]->Release();
-		}
-    }
-	
-	if (pBodyFrame != NULL)
-		pBodyFrame->Release();
+	if (SUCCEEDED(hr))
+		hr = pDepthFrame->get_FrameDescription(&pFrameDescription);
+
+	if (SUCCEEDED(hr))
+		hr = pFrameDescription->get_Width(&nWidth);
+
+	if (SUCCEEDED(hr))
+		hr = pFrameDescription->get_Height(&nHeight);
+
+	if (SUCCEEDED(hr))
+		hr = pDepthFrame->get_DepthMinReliableDistance(&nDepthMinReliableDistance);
+
+	if (SUCCEEDED(hr))
+		hr = pDepthFrame->get_DepthMaxReliableDistance(&nDepthMaxReliableDistance);
+
+	if (SUCCEEDED(hr))
+		hr = pDepthFrame->AccessUnderlyingBuffer(&nBufferSize, &pBuffer);
+
+	if (SUCCEEDED(hr))
+	{
+		// send depth as an update
+		connected = SendDepthUpdate(nWidth, nHeight, pBuffer, nDepthMinReliableDistance, nDepthMaxReliableDistance);
+	}
+
+	if (pDepthFrame != NULL)
+		pDepthFrame->Release();
 
 	return connected;
 }
@@ -505,8 +525,8 @@ bool SendSkeletonUpdate(IBody** ppBodies)
 		}
 
 		// write header
+		header.command = 0;
 		header.dataLength = header.skeletonCount * JointType_Count * 3 * 4;
-		header.command = 0x0;
 		memcpy(frame, &header, sizeof(SkeletonUpdateHeader));
 		
 		// write skeleton joints
@@ -532,6 +552,51 @@ bool SendSkeletonUpdate(IBody** ppBodies)
 
 		// send it out the socket
 		int returnVal = send(hSocket, frame, byteOffset, 0);
+		if (returnVal == -1)
+			return false;
+	}
+	return true;
+}
+
+#pragma pack(push, 1) // exact fit - no padding
+struct DepthUpdateHeader {
+	char command;
+	unsigned short dataLength;
+	unsigned short width;
+	unsigned short height;
+};
+#pragma pack(pop)
+
+bool SendDepthUpdate(int nWidth, int nHeight, UINT16 *pBuffer, USHORT nMinDepth, USHORT nMaxDepth)
+{
+	if (hSocket)
+	{
+		DepthUpdateHeader header;
+		memset(&header, 0, sizeof(DepthUpdateHeader));
+
+		// write header
+		header.command = 1;
+		header.dataLength = nWidth * nHeight;
+		header.width = nWidth;
+		header.height = nHeight;
+		memcpy(pDepthFrame, &header, sizeof(DepthUpdateHeader));
+		
+		// write skeleton joints
+		int byteOffset = sizeof(DepthUpdateHeader);
+
+        // end pixel is start + width*height - 1
+        const UINT16* pBufferEnd = pBuffer + (nWidth * nHeight);
+
+        while (pBuffer < pBufferEnd)
+        {
+            USHORT depth = *pBuffer;
+            pDepthFrame[byteOffset] = static_cast<char>((depth >= nMinDepth) && (depth <= nMaxDepth) ? (depth % 256) : 0);
+			byteOffset++;
+			pBuffer++;
+		}
+
+		// send it out the socket
+		int returnVal = send(hSocket, pDepthFrame, byteOffset, 0);
 		if (returnVal == -1)
 			return false;
 	}
