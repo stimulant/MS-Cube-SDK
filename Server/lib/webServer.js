@@ -12,7 +12,17 @@ var kinectData = {};
 function update()
 {
 	elapsed += 1.0/30.0;
-	io.sockets.emit('updateData', kinectData);
+
+	if (kinectData.depthReady) {
+		console.log("sending data: " + kinectData.depthBuffer.length);
+		var tempBuffer = new Buffer(10);
+		for (var i=0; i<10; i++) {
+			tempBuffer[i] = i;
+		}
+		io.sockets.emit('updateDepth', { image: true, buffer: tempBuffer });
+		kinectData.depthReady = false;
+	}
+	//io.sockets.emit('updateData', kinectData);
 }
 
 function connect(socket)

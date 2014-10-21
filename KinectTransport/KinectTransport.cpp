@@ -490,7 +490,7 @@ void CloseConnection()
 #pragma pack(push, 1) // exact fit - no padding
 struct SkeletonUpdateHeader {
 	char command;
-	unsigned short dataLength;
+	unsigned long dataLength;
 	char skeletonsPresent[6];
 	unsigned short skeletonCount;
 };
@@ -498,7 +498,7 @@ struct SkeletonUpdateHeader {
 
 bool SendSkeletonUpdate(IBody** ppBodies)
 {
-	if (hSocket)
+	if (hSocket && false)
 	{
 		// maximum size of frame is 1208 bytes
 		char frame[1208];
@@ -561,7 +561,7 @@ bool SendSkeletonUpdate(IBody** ppBodies)
 #pragma pack(push, 1) // exact fit - no padding
 struct DepthUpdateHeader {
 	char command;
-	unsigned short dataLength;
+	unsigned long dataLength;
 	unsigned short width;
 	unsigned short height;
 };
@@ -576,7 +576,7 @@ bool SendDepthUpdate(int nWidth, int nHeight, UINT16 *pBuffer, USHORT nMinDepth,
 
 		// write header
 		header.command = 1;
-		header.dataLength = nWidth * nHeight;
+		header.dataLength = nWidth * nHeight + 2;
 		header.width = nWidth;
 		header.height = nHeight;
 		memcpy(pDepthFrame, &header, sizeof(DepthUpdateHeader));

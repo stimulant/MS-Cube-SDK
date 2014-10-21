@@ -6,6 +6,11 @@ $.timeago.settings.strings.seconds = "%d seconds";
 //
 socket.on('connect', function(){});
 
+// update depth buffer
+socket.on('updateDepth', function(data) {
+	console.log("update depth: " + data.buffer + ", " + data.buffer.length);
+});
+
 // update clients list
 socket.on('updateData', function(data) {
 	//console.log(data.skeletonCount);
@@ -22,7 +27,6 @@ socket.on('updateData', function(data) {
 			$('#joint_x_' + i).html(data.skeletons[0][i].x);
 			$('#joint_y_' + i).html(data.skeletons[0][i].y);
 			$('#joint_z_' + i).html(data.skeletons[0][i].z);
-
 
 			context.beginPath();
 			context.arc(data.skeletons[0][i].x * canvas.width/2 + canvas.width/2.0,
