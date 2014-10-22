@@ -6,14 +6,46 @@ $.timeago.settings.strings.seconds = "%d seconds";
 //
 socket.on('connect', function(){});
 
+function blobToImage(imageData) {
+  if (Blob && 'undefined' != typeof URL) {
+    var blob = new Blob([imageData], {type: 'image/png'});
+    return URL.createObjectURL(blob);
+  } else if (imageData.base64) {
+    return 'data:image/bmp;base64,' + imageData.data;
+  } else {
+    return 'about:blank';
+  }
+}
+
 // update depth buffer
 socket.on('updateDepth', function(data) {
-	console.log("update depth: " + data.buffer + ", " + data.buffer.length);
+	var canvas = document.getElementById('skeletonCanvas');
+    var canvasContext = canvas.getContext('2d');
+
+    var imgArray = new Uint8Array(data.buffer);
+    console.log("updating depth image: " + imgArray.length);
+    var imgW = 512, imgH = 424;
+    var imgPixels = canvasContext.getImageData(0, 0, imgW, imgH);
+
+    var d = 0;
+	for(var y = 0; y < imgPixels.height; y++){
+	     for(var x = 0; x < imgPixels.width; x++){
+	          var i = (y * 4) * imgPixels.width + x * 4;
+	          var avg = imgArray[y*imgPixels.width + x];
+	          //avg = d%255;
+
+	          imgPixels.data[i] = avg;
+	          imgPixels.data[i + 1] = avg;
+	          imgPixels.data[i + 2] = avg;
+	          imgPixels.data[i + 3] = 255;
+	     }
+	}
+	canvasContext.putImageData(imgPixels, 0, 0);
 });
 
 // update clients list
 socket.on('updateData', function(data) {
-	//console.log(data.skeletonCount);
+	console.log("updating skeletons: " + data.skeletonCount);
 
 	var canvas = document.getElementById('skeletonCanvas');
     var context = canvas.getContext('2d');

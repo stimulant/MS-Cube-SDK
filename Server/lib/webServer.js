@@ -13,13 +13,9 @@ function update()
 {
 	elapsed += 1.0/30.0;
 
-	if (kinectData.depthReady) {
-		console.log("sending data: " + kinectData.depthBuffer.length);
-		var tempBuffer = new Buffer(10);
-		for (var i=0; i<10; i++) {
-			tempBuffer[i] = i;
-		}
-		io.sockets.emit('updateDepth', { image: true, buffer: tempBuffer });
+	if (kinectData.depthReady && elapsed > 1.0) {
+		//console.log("sending data: " + kinectData.depthBuffer.length);
+		io.sockets.emit('updateDepth', { image: true, buffer: kinectData.depthBuffer });
 		kinectData.depthReady = false;
 	}
 	//io.sockets.emit('updateData', kinectData);
@@ -45,6 +41,12 @@ function connect(socket)
 	socket.on('updateparams', this.updateparams.bind(this));
 	socket.on('setcurrentparam', this.setcurrentparam.bind(this));
 	*/
+
+	/*
+	fs.readFile(__dirname + '/../web/Logo.png', function(err, buffer){
+		console.log("sending data: " + buffer.length);
+        socket.emit('updateDepth', { buffer: buffer });
+    });*/
 }
 
 function start(host, port, kData)

@@ -17,25 +17,16 @@ function parseSkeleton(kinectData, data) {
 }
 
 function parseDepth(kinectData, data) {
-	var offset = 0;
+	var offset = 2;
 	//console.log("parsing depth");
 	kinectData.depthWidth = data.readUInt16LE(offset); offset += 2;
 	kinectData.depthHeight = data.readUInt16LE(offset); offset += 2;
 
 	// copy buffer data to kinectData
+	//console.log("parsing depth: " + kinectData.depthWidth + ", " + kinectData.depthHeight);
 	data.copy(kinectData.depthBuffer, 0, offset, kinectData.depthWidth * kinectData.depthHeight + offset);
 	offset += kinectData.depthWidth * kinectData.depthHeight;
 	kinectData.depthReady = true;
-
-	// parse depth data
-	/*
-	for (var s=0; s<kinectData.skeletonCount; s++) {
-		for (var j=0; j<25; j++) {
-			kinectData.skeletons[s][j].x = data.readFloatLE(offset);	offset += 4;
-			kinectData.skeletons[s][j].y = data.readFloatLE(offset);	offset += 4;
-			kinectData.skeletons[s][j].z = data.readFloatLE(offset);	offset += 4;
-		}
-	}*/
 }
 
 function start(host, port, kinectData) {
