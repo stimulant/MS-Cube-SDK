@@ -576,7 +576,7 @@ bool SendDepthUpdate(int nWidth, int nHeight, UINT16 *pBuffer, USHORT nMinDepth,
 
 		// write header
 		header.command = 1;
-		header.dataLength = nWidth * nHeight + 2;
+		header.dataLength = nWidth * nHeight + 4;
 		header.width = nWidth;
 		header.height = nHeight;
 		memcpy(pDepthFrame, &header, sizeof(DepthUpdateHeader));
