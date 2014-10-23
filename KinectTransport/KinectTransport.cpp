@@ -389,9 +389,21 @@ INT_PTR CALLBACK DlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wmId)
 		{
 		case SWM_SHOW:
+			SetDlgItemText(hWnd, IDC_DESTINATIONHOST, strDestinationHost.c_str());
+			CheckDlgButton(hWnd, IDC_SKELETONDATA, fSendSkeletonData ? 1 : 0);
+			CheckDlgButton(hWnd, IDC_DEPTHDATA, fSendDepthData ? 1 : 0);
 			ShowWindow(hWnd, SW_RESTORE);
 			break;
 		case IDOK:
+			// get values from window
+			char destinationHost[100];
+			GetDlgItemText(hWnd, IDC_DESTINATIONHOST, destinationHost, 100);
+			strDestinationHost = destinationHost;
+			fSendSkeletonData = (IsDlgButtonChecked(hWnd, IDC_SKELETONDATA) == 1);
+			fSendDepthData = (IsDlgButtonChecked(hWnd, IDC_DEPTHDATA) == 1);
+
+			// !!! need to write to registry here
+
 			ShowWindow(hWnd, SW_HIDE);
 			break;
 		case SWM_EXIT:
