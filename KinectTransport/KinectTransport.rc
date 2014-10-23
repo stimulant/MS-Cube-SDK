@@ -15,13 +15,11 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #pragma code_page(1252)
-#endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -30,14 +28,14 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_KINECTTRANSPORT          ICON                    "KinectTransport.ico"
+IDI_KINECTTRANSPORT     ICON                    "KinectTransport.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Accelerator
 //
 
-IDC_KINECTTRANSPORT ACCELERATORS 
+IDC_KINECTTRANSPORT ACCELERATORS
 BEGIN
     "?",            IDM_ABOUT,              ASCII,  ALT
     "/",            IDM_ABOUT,              ASCII,  ALT
@@ -55,19 +53,21 @@ CAPTION "About"
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
     ICON            IDI_KINECTTRANSPORT,IDC_MYICON,14,13,20,20
-    LTEXT           "Blah blah blah blah...",IDC_STATIC,49,14,119,8,
-                    SS_NOPREFIX
+    LTEXT           "Blah blah blah blah...",IDC_STATIC,49,14,119,8,SS_NOPREFIX
     DEFPUSHBUTTON   "OK",IDOK,169,6,30,13,WS_GROUP
 END
 
-IDD_DLG_DIALOG DIALOGEX 0, 0, 178, 92
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_MINIMIZEBOX | 
-    WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_DLG_DIALOG DIALOGEX 0, 0, 230, 71
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_MINIMIZEBOX | WS_POPUP | WS_CAPTION | WS_SYSMENU
 EXSTYLE WS_EX_APPWINDOW
-CAPTION "Not Much Here"
+CAPTION "Kinect Transport Settings"
 FONT 8, "MS Shell Dlg", 0, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "Done",IDOK,63,35,50,16
+    DEFPUSHBUTTON   "Apply",IDOK,174,48,50,16
+    LTEXT           "Send Data to",IDC_STATIC,16,9,45,8
+    EDITTEXT        IDC_EDITDESTINATION,75,7,149,14,ES_AUTOHSCROLL
+    CONTROL         "Send Skeleton Data",IDC_SKELETONDATA,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,32,137,10
+    CONTROL         "Send Depth Data",IDC_DEPTHDATA,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,51,139,10
 END
 
 
@@ -105,26 +105,24 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+    END
+
     IDD_DLG_DIALOG, DIALOG
     BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 171
+        LEFTMARGIN, 16
+        RIGHTMARGIN, 224
+        VERTGUIDE, 224
         TOPMARGIN, 7
-        BOTTOMMARGIN, 85
+        BOTTOMMARGIN, 64
     END
 END
 #endif    // APSTUDIO_INVOKED
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// RT_MANIFEST
-//
-
-//IDR_MANIFEST            RT_MANIFEST             "KinectTransport.manifest"
-#endif    // English (U.S.) resources
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

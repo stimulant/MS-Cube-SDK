@@ -3,13 +3,13 @@
 
 #include "Kinect.h"
 #include <winsock.h>
+#include <string>
 
 #define TRAYICONID	1//				ID number for the Notify Icon
 #define SWM_TRAYMSG	WM_APP//		the message ID sent to our window
 
 #define SWM_SHOW	WM_APP + 1//	show the window
-#define SWM_HIDE	WM_APP + 2//	hide the window
-#define SWM_EXIT	WM_APP + 3//	close the window
+#define SWM_EXIT	WM_APP + 2//	close the window
 
 // Global Variables:
 HINSTANCE		hInst;	// current instance
@@ -26,6 +26,10 @@ const int					cDepthWidth  = 512;
 const int					cDepthHeight = 424;
 RGBQUAD*					pDepthRGBX;
 char*						pDepthFrame;
+std::string					strDestinationHost;
+std::string					strConnectedHost;
+bool						fSendSkeletonData;
+bool						fSendDepthData;
 
 bool UpdateKinect();
 bool UpdateKinectSkeleton();
@@ -33,7 +37,7 @@ bool UpdateKinectDepth();
 
 // Global Socket Variables and functions
 SOCKET hSocket;
-bool ConnectToHost(int PortNo, char* IPAddress);
+bool ConnectToHost(int PortNo, const char* IPAddress);
 void CloseConnection();
 bool SendSkeletonUpdate(IBody** ppBodies);
 bool SendDepthUpdate(int nWidth, int nHeight, UINT16 *pBuffer, USHORT nMinDepth, USHORT nMaxDepth);
@@ -103,8 +107,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	while (true)
 	{
 		// try to connect if we aren't connected
-		if (!connected)
-			connected = ConnectToHost(3000, "127.0.0.1");
+		if (!connected || strDestinationHost != strConnectedHost)
+		{
+			connected = ConnectToHost(3000, strDestinationHost.c_str());
+			if (connected)
+				strConnectedHost = strDestinationHost;
+			Sleep(1000);
+		}
 		
 		if (connected)
 			connected = UpdateKinect();
@@ -121,6 +130,74 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		CloseConnection();
 
 	return (int) msg.wParam;
+}
+
+
+bool GetBoolRegValue(HKEY hKey, const std::string &strValueName, bool &bValue, bool bDefaultValue)
+{
+    DWORD nDefValue((bDefaultValue) ? 1 : 0);
+    DWORD nResult(nDefValue);
+	DWORD dwBufferSize(sizeof(DWORD));
+    LONG nError = ::RegQueryValueEx(hKey,
+        strValueName.c_str(),
+        0,
+        NULL,
+        reinterpret_cast<LPBYTE>(&nResult),
+        &dwBufferSize);
+    if (ERROR_SUCCESS == nError)
+    {
+        return (nResult != 0) ? true : false;
+    }
+    return bDefaultValue;
+}
+
+
+LONG GetStringRegValue(HKEY hKey, const std::string &strValueName, std::string &strValue, const std::string &strDefaultValue)
+{
+    strValue = strDefaultValue;
+    CHAR szBuffer[512];
+    DWORD dwBufferSize = sizeof(szBuffer);
+    ULONG nError;
+    nError = RegQueryValueEx(hKey, strValueName.c_str(), 0, NULL, (LPBYTE)szBuffer, &dwBufferSize);
+    if (ERROR_SUCCESS == nError)
+    {
+        strValue = szBuffer;
+    }
+    return nError;
+}
+
+bool CreateRegistryKey(HKEY hKeyRoot, LPCTSTR pszSubKey, HKEY &hNewKey)
+{
+    DWORD dwFunc;
+    LONG  lRet;
+    SECURITY_DESCRIPTOR SD;
+    SECURITY_ATTRIBUTES SA;
+
+    if(!InitializeSecurityDescriptor(&SD, SECURITY_DESCRIPTOR_REVISION))
+        return false;
+    if(!SetSecurityDescriptorDacl(&SD, true, 0, false))
+        return false;
+
+    SA.nLength             = sizeof(SA);
+    SA.lpSecurityDescriptor = &SD;
+    SA.bInheritHandle      = false;
+    lRet = RegCreateKeyEx(
+        hKeyRoot,
+        pszSubKey,
+        0,
+        (LPTSTR)NULL,
+        REG_OPTION_NON_VOLATILE,
+        KEY_WRITE,
+        &SA,
+        &hNewKey,
+        &dwFunc
+    );
+
+    if(lRet == ERROR_SUCCESS)
+        return true;
+
+    SetLastError((DWORD)lRet);
+    return false;
 }
 
 //	Initialize the window and tray icon
@@ -179,6 +256,42 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	// call ShowWindow here to make the dialog initially visible
 
+	// get registry key for settings
+	strDestinationHost = "127.0.0.1";
+	strConnectedHost = "";
+	fSendSkeletonData = true;
+	fSendDepthData = false;
+	HKEY hKey;
+	LONG lRes = RegOpenKeyEx(HKEY_CURRENT_USER, "SOFTWARE\\KinectTransport", 0, KEY_READ, &hKey);
+	if (lRes == ERROR_SUCCESS)
+	{
+		// key exists, lets load settings
+		bool bValue;
+		std::string strValue;
+		if (GetStringRegValue(hKey, "DestinationHost", strValue, "127.0.0.1"))
+			strDestinationHost = strValue;
+		if (GetBoolRegValue(hKey, "SendSkeletonData", bValue, true))
+			fSendSkeletonData = bValue;
+		if (GetBoolRegValue(hKey, "SendDepthData", bValue, true))
+			fSendDepthData = bValue;
+	}
+	else if (lRes == ERROR_FILE_NOT_FOUND)
+	{
+		// key does not exist, lets create it and subkeys
+		HKEY hSoftwareKey;
+		LONG lRes = RegOpenKeyEx(HKEY_CURRENT_USER, "SOFTWARE", 0, KEY_READ, &hSoftwareKey);
+		if (CreateRegistryKey(hSoftwareKey, "KinectTransport", hKey))
+		{
+			RegSetValueEx(hKey, "DestinationHost", 0, REG_SZ, (unsigned char*)strDestinationHost.c_str(), strDestinationHost.length() * sizeof(TCHAR));
+			DWORD dValue = fSendSkeletonData ? 1 : 0;
+			RegSetValueEx(hKey, "SendSkeletonData", 0, REG_DWORD, (unsigned char*)&dValue, sizeof(DWORD));
+			dValue = fSendDepthData ? 1 : 0;
+			RegSetValueEx(hKey, "SendDepthData", 0, REG_DWORD, (unsigned char*)&dValue, sizeof(DWORD));
+			RegCloseKey(hKey);
+		}
+	}
+
+
 	return TRUE;
 }
 
@@ -206,18 +319,13 @@ void ShowContextMenu(HWND hWnd)
 	HMENU hMenu = CreatePopupMenu();
 	if(hMenu)
 	{
-		if( IsWindowVisible(hWnd) )
-			InsertMenu(hMenu, -1, MF_BYPOSITION, SWM_HIDE, _T("Hide"));
-		else
-			InsertMenu(hMenu, -1, MF_BYPOSITION, SWM_SHOW, _T("Show"));
+		InsertMenu(hMenu, -1, MF_BYPOSITION, SWM_SHOW, _T("Options"));
 		InsertMenu(hMenu, -1, MF_BYPOSITION, SWM_EXIT, _T("Exit"));
 
 		// note:	must set window to the foreground or the
 		//			menu won't disappear when it should
 		SetForegroundWindow(hWnd);
-
-		TrackPopupMenu(hMenu, TPM_BOTTOMALIGN,
-			pt.x, pt.y, 0, hWnd, NULL );
+		TrackPopupMenu(hMenu, TPM_BOTTOMALIGN, pt.x, pt.y, 0, hWnd, NULL );
 		DestroyMenu(hMenu);
 	}
 }
@@ -283,7 +391,6 @@ INT_PTR CALLBACK DlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case SWM_SHOW:
 			ShowWindow(hWnd, SW_RESTORE);
 			break;
-		case SWM_HIDE:
 		case IDOK:
 			ShowWindow(hWnd, SW_HIDE);
 			break;
@@ -330,10 +437,16 @@ LRESULT CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 bool UpdateKinect()
 {
-	if (!UpdateKinectSkeleton())
-		return false;
-	if (!UpdateKinectDepth())
-		return false;
+	if (fSendSkeletonData)
+	{
+		if (!UpdateKinectSkeleton())
+			return false;
+	}
+	if (fSendDepthData)
+	{
+		if (!UpdateKinectDepth())
+			return false;
+	}
 	return true;
 }
 
@@ -443,7 +556,7 @@ bool UpdateKinectDepth()
 	return connected;
 }
 
-bool ConnectToHost(int PortNo, char* IPAddress)
+bool ConnectToHost(int PortNo, const char* IPAddress)
 {
     // Start winsock
     WSADATA wsadata;
@@ -590,7 +703,13 @@ bool SendDepthUpdate(int nWidth, int nHeight, UINT16 *pBuffer, USHORT nMinDepth,
         while (pBuffer < pBufferEnd)
         {
             USHORT depth = *pBuffer;
-            pDepthFrame[byteOffset] = static_cast<char>((depth >= nMinDepth) && (depth <= nMaxDepth) ? (depth % 256) : 0);
+			if (depth < nMinDepth || depth > nMaxDepth)
+				pDepthFrame[byteOffset] = 0;
+			else
+			{
+				//pDepthFrame[byteOffset] = static_cast<char>((depth >= nMinDepth) && (depth <= nMaxDepth) ? (depth % 256) : 0);
+				pDepthFrame[byteOffset] = static_cast<char>(((float)depth/(float)nMaxDepth) * 255);
+			}
 			byteOffset++;
 			pBuffer++;
 		}
