@@ -99,8 +99,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	// maximum size of frame is 247815 bytes (512x424 + 7)
 	pDepthFrame = new char[247815];
-
-	// try to connect to localhost
 	bool connected = false;
 
 	// Main message loop:
@@ -125,7 +123,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		}
 	}
 
-	// disconnect from localhost
 	if (connected)
 		CloseConnection();
 
@@ -148,7 +145,7 @@ bool GetBoolRegValue(HKEY hKey, const std::string &strValueName, bool &bValue, b
     {
         return (nResult != 0) ? true : false;
     }
-    return bDefaultValue;
+    return (ERROR_SUCCESS == nError);
 }
 
 
@@ -163,7 +160,7 @@ LONG GetStringRegValue(HKEY hKey, const std::string &strValueName, std::string &
     {
         strValue = szBuffer;
     }
-    return nError;
+    return (ERROR_SUCCESS == nError);
 }
 
 bool CreateRegistryKey(HKEY hKeyRoot, LPCTSTR pszSubKey, HKEY &hNewKey)
@@ -198,6 +195,57 @@ bool CreateRegistryKey(HKEY hKeyRoot, LPCTSTR pszSubKey, HKEY &hNewKey)
 
     SetLastError((DWORD)lRet);
     return false;
+}
+
+bool LoadFromRegistry()
+{
+	bool bValue;
+	std::string strValue;
+
+	HKEY hKey;
+	LONG lRes = RegOpenKeyEx(HKEY_CURRENT_USER, "SOFTWARE\\KinectTransport", 0, KEY_READ, &hKey);
+	if (lRes != ERROR_SUCCESS)
+		return false;
+
+	if (GetStringRegValue(hKey, "DestinationHost", strValue, "127.0.0.1"))
+		strDestinationHost = strValue;
+	else
+		return false;
+	if (GetBoolRegValue(hKey, "SendSkeletonData", bValue, true))
+		fSendSkeletonData = bValue;
+	else
+		return false;
+	if (GetBoolRegValue(hKey, "SendDepthData", bValue, true))
+		fSendDepthData = bValue;
+	else
+		return false;
+
+	RegCloseKey(hKey);
+	return true;
+}
+
+bool SaveToRegistry()
+{
+	HKEY hKey;
+	LONG lRes = RegOpenKeyEx(HKEY_CURRENT_USER, "SOFTWARE\\KinectTransport", 0, KEY_READ | KEY_SET_VALUE, &hKey);
+	if (lRes != ERROR_SUCCESS)
+	{
+		// no key, lets create one
+		HKEY hSoftwareKey;
+		lRes = RegOpenKeyEx(HKEY_CURRENT_USER, "SOFTWARE", 0, KEY_READ | KEY_SET_VALUE, &hSoftwareKey);
+		if (lRes != ERROR_SUCCESS || !CreateRegistryKey(hSoftwareKey, "KinectTransport", hKey))
+			return false;
+	}
+
+	// now save our values
+	lRes = RegSetValueEx(hKey, "DestinationHost", 0, REG_SZ, (unsigned char*)strDestinationHost.c_str(), strDestinationHost.length() * sizeof(TCHAR));
+	DWORD dValue = fSendSkeletonData ? 1 : 0;
+	lRes = RegSetValueEx(hKey, "SendSkeletonData", 0, REG_DWORD, (unsigned char*)&dValue, sizeof(DWORD));
+	dValue = fSendDepthData ? 1 : 0;
+	lRes = RegSetValueEx(hKey, "SendDepthData", 0, REG_DWORD, (unsigned char*)&dValue, sizeof(DWORD));
+	RegCloseKey(hKey);
+
+	return true;
 }
 
 //	Initialize the window and tray icon
@@ -261,36 +309,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	strConnectedHost = "";
 	fSendSkeletonData = true;
 	fSendDepthData = false;
-	HKEY hKey;
-	LONG lRes = RegOpenKeyEx(HKEY_CURRENT_USER, "SOFTWARE\\KinectTransport", 0, KEY_READ, &hKey);
-	if (lRes == ERROR_SUCCESS)
-	{
-		// key exists, lets load settings
-		bool bValue;
-		std::string strValue;
-		if (GetStringRegValue(hKey, "DestinationHost", strValue, "127.0.0.1"))
-			strDestinationHost = strValue;
-		if (GetBoolRegValue(hKey, "SendSkeletonData", bValue, true))
-			fSendSkeletonData = bValue;
-		if (GetBoolRegValue(hKey, "SendDepthData", bValue, true))
-			fSendDepthData = bValue;
-	}
-	else if (lRes == ERROR_FILE_NOT_FOUND)
-	{
-		// key does not exist, lets create it and subkeys
-		HKEY hSoftwareKey;
-		LONG lRes = RegOpenKeyEx(HKEY_CURRENT_USER, "SOFTWARE", 0, KEY_READ, &hSoftwareKey);
-		if (CreateRegistryKey(hSoftwareKey, "KinectTransport", hKey))
-		{
-			RegSetValueEx(hKey, "DestinationHost", 0, REG_SZ, (unsigned char*)strDestinationHost.c_str(), strDestinationHost.length() * sizeof(TCHAR));
-			DWORD dValue = fSendSkeletonData ? 1 : 0;
-			RegSetValueEx(hKey, "SendSkeletonData", 0, REG_DWORD, (unsigned char*)&dValue, sizeof(DWORD));
-			dValue = fSendDepthData ? 1 : 0;
-			RegSetValueEx(hKey, "SendDepthData", 0, REG_DWORD, (unsigned char*)&dValue, sizeof(DWORD));
-			RegCloseKey(hKey);
-		}
-	}
 
+	// try to load from registry, if we cannot try to save (in order to create key
+	if (!LoadFromRegistry())
+		SaveToRegistry();
 
 	return TRUE;
 }
@@ -395,14 +417,13 @@ INT_PTR CALLBACK DlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ShowWindow(hWnd, SW_RESTORE);
 			break;
 		case IDOK:
-			// get values from window
+			// get values from window and write them to registry
 			char destinationHost[100];
 			GetDlgItemText(hWnd, IDC_DESTINATIONHOST, destinationHost, 100);
 			strDestinationHost = destinationHost;
 			fSendSkeletonData = (IsDlgButtonChecked(hWnd, IDC_SKELETONDATA) == 1);
 			fSendDepthData = (IsDlgButtonChecked(hWnd, IDC_DEPTHDATA) == 1);
-
-			// !!! need to write to registry here
+			SaveToRegistry();
 
 			ShowWindow(hWnd, SW_HIDE);
 			break;
