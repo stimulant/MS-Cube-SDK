@@ -644,7 +644,7 @@ struct SkeletonUpdateHeader {
 
 bool SendSkeletonUpdate(IBody** ppBodies)
 {
-	if (hSocket && false)
+	if (hSocket)
 	{
 		// maximum size of frame is 1208 bytes
 		char frame[1208];
@@ -672,7 +672,7 @@ bool SendSkeletonUpdate(IBody** ppBodies)
 
 		// write header
 		header.command = 0;
-		header.dataLength = header.skeletonCount * JointType_Count * 3 * 4;
+		header.dataLength = header.skeletonCount * JointType_Count * 3 * 4 + 8;
 		memcpy(frame, &header, sizeof(SkeletonUpdateHeader));
 		
 		// write skeleton joints
