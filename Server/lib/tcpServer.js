@@ -2,7 +2,7 @@ var net = require('net');
 
 function parseSkeleton(kinectData, data) {
 	var offset = 0;
-	offset += 4;	// skeletons preset
+	offset += 6;	// skeletons preset
 	kinectData.skeletonCount = data.readUInt16LE(offset); offset += 2;
 	//console.log("parsing skeletons: " + kinectData.skeletonCount);
 
@@ -89,8 +89,8 @@ function start(host, port, kinectData) {
 
 				// check if we have any data left in packet
 				dataLeft -= dataOffset;
-				if (dataLeft > 0)
-					console.log("data left: " + dataLeft);
+				//if (dataLeft > 0)
+				//	console.log("data left: " + dataLeft);
 			}
 		});
 		

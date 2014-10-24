@@ -18,14 +18,16 @@ function blobToImage(imageData) {
 }
 
 // update depth buffer
+var timeSinceUpdateDepth = 0;
 socket.on('updateDepth', function(data) {
-	var canvas = document.getElementById('skeletonCanvas');
-    var canvasContext = canvas.getContext('2d');
+	var canvas = document.getElementById('depthCanvas');
+    var context = canvas.getContext('2d');
+    context.clearRect(0, 0, canvas.width, canvas.height);
 
     var imgArray = new Uint8Array(data.buffer);
-    console.log("updating depth image: " + imgArray.length);
+    //console.log("updating depth image: " + imgArray.length);
     var imgW = 512, imgH = 424;
-    var imgPixels = canvasContext.getImageData(0, 0, imgW, imgH);
+    var imgPixels = context.getImageData(0, 0, imgW, imgH);
 
     var d = 0;
 	for(var y = 0; y < imgPixels.height; y++){
@@ -40,12 +42,14 @@ socket.on('updateDepth', function(data) {
 	          imgPixels.data[i + 3] = 255;
 	     }
 	}
-	canvasContext.putImageData(imgPixels, 0, 0);
+	context.putImageData(imgPixels, 0, 0);
+	timeSinceUpdateDepth = 0;
 });
 
 // update clients list
-socket.on('updateData', function(data) {
-	console.log("updating skeletons: " + data.skeletonCount);
+var timeSinceUpdateSkeleton = 0;
+socket.on('updateSkeleton', function(data) {
+	//console.log("updating skeletons: " + data.skeletonCount);
 
 	var canvas = document.getElementById('skeletonCanvas');
     var context = canvas.getContext('2d');
@@ -53,7 +57,7 @@ socket.on('updateData', function(data) {
     var radius = 5;
 
 	if (data.skeletonCount > 0) {
-		console.dir(data.skeletons[0][0]);
+		//console.dir(data.skeletons[0][0]);
 		for (var i in data.skeletons[0]) {
 
 			$('#joint_x_' + i).html(data.skeletons[0][i].x);
@@ -80,10 +84,23 @@ socket.on('updateData', function(data) {
 					"y: " + data.skeletons[0][0].y + 
 					"z: " + data.skeletons[0][0].z);
 	}*/
+	timeSinceUpdateSkeleton = 0;
 });
+
+function clearCanvas(canvasName) {
+	var canvas = document.getElementById(canvasName);
+    var context = canvas.getContext('2d');
+    context.clearRect(0, 0, canvas.width, canvas.height);
+}
 
 // send updated parameters on an interval
 setInterval(
 	function() {
+		if (timeSinceUpdateDepth > 0.2)
+			clearCanvas('depthCanvas');
+		if (timeSinceUpdateSkeleton > 0.2)
+			clearCanvas('skeletonCanvas');
+		timeSinceUpdateDepth += 1000.0/30.0;
+		timeSinceUpdateSkeleton += 1000.0/30.0;
 	},
 1000.0/30.0);

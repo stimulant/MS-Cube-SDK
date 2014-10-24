@@ -13,12 +13,11 @@ function update()
 {
 	elapsed += 1.0/30.0;
 
-	if (kinectData.depthReady && elapsed > 1.0) {
-		//console.log("sending data: " + kinectData.depthBuffer.length);
-		io.sockets.emit('updateDepth', { image: true, buffer: kinectData.depthBuffer });
+	if (kinectData.depthReady) {
+		io.sockets.emit('updateDepth', { buffer: kinectData.depthBuffer });
 		kinectData.depthReady = false;
 	}
-	//io.sockets.emit('updateData', kinectData);
+	io.sockets.emit('updateSkeleton', { skeletonCount: kinectData.skeletonCount, skeletons: kinectData.skeletons } );
 }
 
 function connect(socket)

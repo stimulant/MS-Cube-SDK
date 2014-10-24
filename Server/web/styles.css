@@ -91,5 +91,7 @@ h3 {
   font-size: 14px;
 }
 #skeletonCanvas {
+}
+#depthCanvas {
   background-color: black;
 }
