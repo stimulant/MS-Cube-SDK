@@ -1,4 +1,6 @@
 var net = require('net');
+var dgram = require('dgram');
+var server = dgram.createSocket('udp4');
 
 function parseSkeleton(kinectData, data) {
 	var offset = 0;
@@ -23,7 +25,7 @@ function parseDepth(kinectData, data) {
 	kinectData.depthHeight = data.readUInt16LE(offset); offset += 2;
 
 	// copy buffer data to kinectData
-	//console.log("parsing depth: " + kinectData.depthWidth + ", " + kinectData.depthHeight);
+	console.log("parsing depth: " + kinectData.depthWidth + ", " + kinectData.depthHeight);
 	data.copy(kinectData.depthBuffer, 0, offset, kinectData.depthWidth * kinectData.depthHeight + offset);
 	offset += kinectData.depthWidth * kinectData.depthHeight;
 	kinectData.depthReady = true;
@@ -58,7 +60,48 @@ function parseData(data, dataOffset) {
 }
 
 function start(host, port, kinectData) {
-	net.createServer(function(socket) {
+
+	/* UDP implementation */
+	server.on('listening', function () {
+	    var address = server.address();
+	    console.log('UDP Server listening on ' + address.address + ":" + address.port);
+	});
+
+	server.on('message', function (data, remote) {
+		//console.log( data );
+	    var dataOffset = 0;
+		var dataLeft = data.length;
+
+		while (dataLeft > 0) {				
+			// if we don't have a command yet, parse it out of data
+			if (parseCommandId == -1)
+				dataOffset = parseCommand(data, dataOffset);
+
+			// parse data
+			dataOffset = parseData(data, dataOffset);
+
+			// if we are done receiving the buffer, go ahead and parse skeleton or depth
+			if (parseDataOffset >= parseDataLength-1) {
+				//console.log("parseDataOffset: " + parseDataOffset + " parseDataLength: " + parseDataLength);
+				if (parseCommandId == 0)
+					parseSkeleton(kinectData, parseBuffer);
+				else if (parseCommandId == 1)
+					parseDepth(kinectData, parseBuffer);
+
+				// reset command
+				parseCommandId = -1; parseDataOffset = 0; parseDataLength = 0;
+			}
+
+			// check if we have any data left in packet
+			dataLeft -= dataOffset;
+			//if (dataLeft > 0)
+			//	console.log("data left: " + dataLeft);
+		}
+	});
+	server.bind(port, host);
+
+	/* TCP implementation
+	server.createServer(function(socket) {
 		console.log('CONNECTED: ' + socket.remoteAddress +':'+ socket.remotePort);
 		var remoteAddress = socket.remoteAddress;
 		var remotePort = socket.remotePort;
@@ -99,7 +142,8 @@ function start(host, port, kinectData) {
 		});
 		
 	}).listen(port, host);
-	console.log('TCP Server listening on ' + host +':'+ port);
+	*/
+	console.log('Server listening on ' + host +':'+ port);
 }
 
 exports.start = start;

@@ -4,6 +4,8 @@
 #include "Kinect.h"
 #include <winsock.h>
 #include <string>
+#include <process.h>
+#include <ctime>
 
 #define TRAYICONID	1//				ID number for the Notify Icon
 #define SWM_TRAYMSG	WM_APP//		the message ID sent to our window
@@ -17,6 +19,7 @@ NOTIFYICONDATA	niData;	// notify icon data
 
 // Global Kinect Variables and functions
 IKinectSensor*				kinectSensor;
+bool						fKinectConnected;
 ICoordinateMapper*			coordinateMapper;
 IBodyFrameReader*			bodyFrameReader;
 IDepthFrameReader*			depthFrameReader;
@@ -34,6 +37,7 @@ bool						fSendDepthData;
 bool UpdateKinect();
 bool UpdateKinectSkeleton();
 bool UpdateKinectDepth();
+unsigned int __stdcall KinectThread(void* data);
 
 // Global Socket Variables and functions
 SOCKET hSocket;
@@ -99,23 +103,13 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	// maximum size of frame is 247815 bytes (512x424 + 7)
 	pDepthFrame = new char[247815];
-	bool connected = false;
+	fKinectConnected = false;
+	HANDLE kinectThreadHandle = (HANDLE)_beginthreadex(0, 0, &KinectThread, 0, 0, 0);
+	SetThreadPriority(kinectThreadHandle, THREAD_PRIORITY_TIME_CRITICAL);
 
 	// Main message loop:
 	while (true)
 	{
-		// try to connect if we aren't connected
-		if (!connected || strDestinationHost != strConnectedHost)
-		{
-			connected = ConnectToHost(3000, strDestinationHost.c_str());
-			if (connected)
-				strConnectedHost = strDestinationHost;
-			Sleep(1000);
-		}
-		
-		if (connected)
-			connected = UpdateKinect();
-
 		MSG msg;
 		while( ::PeekMessage( &msg, NULL, 0, 0, PM_REMOVE ) ) {
 			::TranslateMessage( &msg );
@@ -123,10 +117,31 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		}
 	}
 
-	if (connected)
+	return (int) msg.wParam;
+}
+
+unsigned int __stdcall KinectThread(void* data)
+{
+	while (true)
+	{
+		// try to connect if we aren't connected
+		if (!fKinectConnected || strDestinationHost != strConnectedHost)
+		{
+			fKinectConnected = ConnectToHost(3000, strDestinationHost.c_str());
+			if (fKinectConnected)
+				strConnectedHost = strDestinationHost;
+		}
+		
+		if (fKinectConnected)
+		{
+			fKinectConnected = UpdateKinect();
+		}
+	}
+
+	if (fKinectConnected)
 		CloseConnection();
 
-	return (int) msg.wParam;
+	return 0;
 }
 
 
@@ -424,8 +439,6 @@ INT_PTR CALLBACK DlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			fSendSkeletonData = (IsDlgButtonChecked(hWnd, IDC_SKELETONDATA) == 1);
 			fSendDepthData = (IsDlgButtonChecked(hWnd, IDC_DEPTHDATA) == 1);
 			SaveToRegistry();
-
-			ShowWindow(hWnd, SW_HIDE);
 			break;
 		case SWM_EXIT:
 			DestroyWindow(hWnd);
@@ -438,7 +451,7 @@ INT_PTR CALLBACK DlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_INITDIALOG:
 		return OnInitDialog(hWnd);
 	case WM_CLOSE:
-		DestroyWindow(hWnd);
+		ShowWindow(hWnd, SW_HIDE);
 		break;
 	case WM_DESTROY:
 		niData.uFlags = 0;
@@ -611,7 +624,7 @@ bool ConnectToHost(int PortNo, const char* IPAddress)
     target.sin_addr.s_addr = inet_addr(IPAddress);
 
 	// Create socket
-    hSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    hSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (hSocket == INVALID_SOCKET)
     {
         return false;
