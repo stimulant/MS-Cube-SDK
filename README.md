@@ -9,7 +9,7 @@ The Microsoft Cube SDK provides the means to collect data from an array of Kinec
 
  1. Clone this repository onto your machine.
  2. Install [NodeJS](http://nodejs.org/) if it hasn't been already installed.
- 3. Inside of the [Server](Server/) directory run `<npm install>` to install all required node modules.
+ 3. Inside of the [Server](Server/) directory run `npm install` to install all required node modules.
 
 # Kinect Transport
 
