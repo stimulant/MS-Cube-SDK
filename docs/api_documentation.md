@@ -11,7 +11,7 @@ A Kinect API stream consists of a sequence of messages. Each message has a 4-byt
 |--------|----------------------------
 |0       | Command code that determines the format of the data
 |1-2     | Length of data block from 0 to 65535 sent as unsigned 2-byte number
-|n bytes | Command code that determines the format of the data
+|n bytes | The data payload for the command
 
 ## Commands
 
