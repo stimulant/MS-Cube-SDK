@@ -45,7 +45,7 @@ function parseCommand(data, dataOffset) {
 	parseDataLength	= data.readUInt32LE(dataOffset); dataOffset += 4;
 	if (parseDataLength > 247815)
 		throw ("parseDataLength: " + parseDataLength);
-	//console.log(parseCommandId);
+	console.log("parsing command: " + parseCommandId + ", data length: " + parseDataLength);
 	return dataOffset;
 }
 
@@ -67,35 +67,40 @@ function start(host, port, kinectData) {
 	    console.log('UDP Server listening on ' + address.address + ":" + address.port);
 	});
 
+	// we need to keep receiving messages until we have a full packet of depth
+	var idxData = 0;
 	server.on('message', function (data, remote) {
-		//console.log( data );
+		//if (idxData < 550)
+		//	console.log(data.length + ", " + (idxData++));
+		//else
+		//	return;
+
 	    var dataOffset = 0;
-		var dataLeft = data.length;
+	    var dataLength = data.length;
 
-		while (dataLeft > 0) {				
-			// if we don't have a command yet, parse it out of data
-			if (parseCommandId == -1)
-				dataOffset = parseCommand(data, dataOffset);
+		// if we don't have a command yet, parse it out of data
+		if (parseCommandId == -1)
+		{
+			dataOffset = parseCommand(data, dataOffset);
+			dataLength -= dataOffset;
+		}
 
-			// parse data
-			dataOffset = parseData(data, dataOffset);
+		// add data to our buffer
+		console.log("copying data at: " + parseDataOffset + " of: " + parseDataLength + " length: " + dataLength + " left: " + (parseDataLength-parseDataOffset) + " idx: " + idxData);
+		data.copy(parseBuffer, parseDataOffset, dataOffset, dataLength);
+		idxData++;
+		parseDataOffset += dataLength;
 
-			// if we are done receiving the buffer, go ahead and parse skeleton or depth
-			if (parseDataOffset >= parseDataLength-1) {
-				//console.log("parseDataOffset: " + parseDataOffset + " parseDataLength: " + parseDataLength);
-				if (parseCommandId == 0)
-					parseSkeleton(kinectData, parseBuffer);
-				else if (parseCommandId == 1)
-					parseDepth(kinectData, parseBuffer);
+		// if we are done receiving the buffer, go ahead and parse skeleton or depth
+		if (parseDataOffset >= parseDataLength-1) {
+			console.log("parseDataOffset: " + parseDataOffset + " parseDataLength: " + parseDataLength);
+			if (parseCommandId == 0)
+				parseSkeleton(kinectData, parseBuffer);
+			else if (parseCommandId == 1)
+				parseDepth(kinectData, parseBuffer);
 
-				// reset command
-				parseCommandId = -1; parseDataOffset = 0; parseDataLength = 0;
-			}
-
-			// check if we have any data left in packet
-			dataLeft -= dataOffset;
-			//if (dataLeft > 0)
-			//	console.log("data left: " + dataLeft);
+			// reset command
+			parseCommandId = -1; parseDataOffset = 0; parseDataLength = 0; idxData = 0;
 		}
 	});
 	server.bind(port, host);

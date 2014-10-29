@@ -6,6 +6,7 @@
 #include <string>
 #include <process.h>
 #include <ctime>
+#include <iostream>
 
 #define TRAYICONID	1//				ID number for the Notify Icon
 #define SWM_TRAYMSG	WM_APP//		the message ID sent to our window
@@ -33,6 +34,11 @@ std::string					strDestinationHost;
 std::string					strConnectedHost;
 bool						fSendSkeletonData;
 bool						fSendDepthData;
+bool						fCanRun = true;
+
+#define MAX_DGRAM_SIZE 15527 // max datagram size
+#define MAX_FRAME_SIZE 247815 // max size of frame is 247815 bytes (512x424 + 7)
+
 
 bool UpdateKinect();
 bool UpdateKinectSkeleton();
@@ -101,8 +107,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	// create heap storage for depth pixel data in RGBX format
     pDepthRGBX = new RGBQUAD[cDepthWidth * cDepthHeight];
 
-	// maximum size of frame is 247815 bytes (512x424 + 7)
-	pDepthFrame = new char[247815];
+	pDepthFrame = new char[MAX_FRAME_SIZE];
 	fKinectConnected = false;
 	HANDLE kinectThreadHandle = (HANDLE)_beginthreadex(0, 0, &KinectThread, 0, 0, 0);
 	SetThreadPriority(kinectThreadHandle, THREAD_PRIORITY_TIME_CRITICAL);
@@ -158,7 +163,8 @@ bool GetBoolRegValue(HKEY hKey, const std::string &strValueName, bool &bValue, b
         &dwBufferSize);
     if (ERROR_SUCCESS == nError)
     {
-        return (nResult != 0) ? true : false;
+		bValue = (nResult != 0);
+        return true;
     }
     return (ERROR_SUCCESS == nError);
 }
@@ -241,6 +247,7 @@ bool LoadFromRegistry()
 
 bool SaveToRegistry()
 {
+	fCanRun = true;
 	HKEY hKey;
 	LONG lRes = RegOpenKeyEx(HKEY_CURRENT_USER, "SOFTWARE\\KinectTransport", 0, KEY_READ | KEY_SET_VALUE, &hKey);
 	if (lRes != ERROR_SUCCESS)
@@ -542,8 +549,12 @@ bool UpdateKinectSkeleton()
 	return connected;
 }
 
+//bool hasRun = false;
 bool UpdateKinectDepth()
 {
+	//if(hasRun)
+	//	return true;
+	//hasRun = true;
 	bool connected = true;
 
 	DWORD dwResult = WaitForSingleObjectEx(reinterpret_cast<HANDLE>(depthFrameEvent), 0, FALSE);
@@ -646,6 +657,38 @@ void CloseConnection()
     WSACleanup();
 }
 
+void DebugOutput(const char* szFormat, ...)
+{
+    char szBuff[1024];
+    va_list arg;
+    va_start(arg, szFormat);
+    _vsnprintf(szBuff, sizeof(szBuff), szFormat, arg);
+    va_end(arg);
+
+    OutputDebugString(szBuff);
+}
+
+// send it out the socket, we need to do this in multiple frames for udp datagrams
+bool SendDGram(char* frameData, int frameLength)
+{
+	if (!fCanRun) 
+		return true;
+	int sendOffset = 0;
+	int i=0;
+	while (sendOffset < frameLength)
+	{
+		int length = min(frameLength - sendOffset, MAX_DGRAM_SIZE);
+		//DebugOutput("length: %d %d\n", length, i);
+		int returnVal = send(hSocket, frameData + sendOffset, length, 0);
+		if (returnVal == -1)
+			return false;
+		sendOffset += length;
+		i++;
+	}
+	fCanRun = false;
+	return true;
+}
+
 #pragma pack(push, 1) // exact fit - no padding
 struct SkeletonUpdateHeader {
 	char command;
@@ -709,9 +752,8 @@ bool SendSkeletonUpdate(IBody** ppBodies)
 			}
 		}
 
-		// send it out the socket
-		int returnVal = send(hSocket, frame, byteOffset, 0);
-		if (returnVal == -1)
+		// send data as udp datagram
+		if (!SendDGram(frame, byteOffset))
 			return false;
 	}
 	return true;
@@ -760,9 +802,8 @@ bool SendDepthUpdate(int nWidth, int nHeight, UINT16 *pBuffer, USHORT nMinDepth,
 			pBuffer++;
 		}
 
-		// send it out the socket
-		int returnVal = send(hSocket, pDepthFrame, byteOffset, 0);
-		if (returnVal == -1)
+		// send data as udp datagram
+		if (!SendDGram(pDepthFrame, byteOffset))
 			return false;
 	}
 	return true;
