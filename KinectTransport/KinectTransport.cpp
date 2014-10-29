@@ -717,6 +717,29 @@ bool SendSkeletonUpdate(IBody** ppBodies)
 	return true;
 }
 
+int RLEncode(char *data, int dataLength, char* output)
+{
+	int index,count;
+	char current;
+
+	current=data[0];
+	count =0;
+	index =0;
+
+	for(int i=0; i<=dataLength; i++)
+	{
+		if(data[i] != current || i >= 255)
+		{
+			output[index++]=current;
+			output[index++]=count + '0';
+			current = data[i];
+			count = 0;
+		}
+		count++;
+	}
+	return index;
+}
+
 #pragma pack(push, 1) // exact fit - no padding
 struct DepthUpdateHeader {
 	char command;
