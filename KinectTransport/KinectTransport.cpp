@@ -624,7 +624,7 @@ bool ConnectToHost(int PortNo, const char* IPAddress)
     target.sin_addr.s_addr = inet_addr(IPAddress);
 
 	// Create socket
-    hSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    hSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (hSocket == INVALID_SOCKET)
     {
         return false;
