@@ -29,6 +29,7 @@ const int					cDepthWidth  = 512;
 const int					cDepthHeight = 424;
 RGBQUAD*					pDepthRGBX;
 char*						pDepthFrame;
+char*						pDepthEncodedFrame;
 std::string					strDestinationHost;
 std::string					strConnectedHost;
 bool						fSendSkeletonData;
@@ -103,6 +104,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	// maximum size of frame is 247815 bytes (512x424 + 7)
 	pDepthFrame = new char[247815];
+	pDepthEncodedFrame = new char[247815*2];
 	fKinectConnected = false;
 	HANDLE kinectThreadHandle = (HANDLE)_beginthreadex(0, 0, &KinectThread, 0, 0, 0);
 	SetThreadPriority(kinectThreadHandle, THREAD_PRIORITY_TIME_CRITICAL);
@@ -118,6 +120,17 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	}
 
 	return (int) msg.wParam;
+}
+
+void DebugOutput(LPCTSTR lpszFormat, ...)
+{
+    va_list args;
+    va_start(args, lpszFormat);
+    int nBuf;
+    TCHAR szBuffer[512]; // get rid of this hard-coded buffer
+    nBuf = _vsntprintf(szBuffer, 511, lpszFormat, args);
+    ::OutputDebugString(szBuffer);
+    va_end(args);
 }
 
 unsigned int __stdcall KinectThread(void* data)
@@ -158,7 +171,7 @@ bool GetBoolRegValue(HKEY hKey, const std::string &strValueName, bool &bValue, b
         &dwBufferSize);
     if (ERROR_SUCCESS == nError)
     {
-        return (nResult != 0) ? true : false;
+        bValue = (nResult != 0);
     }
     return (ERROR_SUCCESS == nError);
 }
@@ -423,6 +436,22 @@ INT_PTR CALLBACK DlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		wmId    = LOWORD(wParam);
 		wmEvent = HIWORD(wParam); 
 
+		switch (wmEvent)
+		{
+			case BN_CLICKED:
+				if (wmId == IDC_SKELETONDATA || wmId == IDC_DEPTHDATA)
+				{
+					// get values from window and write them to registry
+					char destinationHost[100];
+					GetDlgItemText(hWnd, IDC_DESTINATIONHOST, destinationHost, 100);
+					strDestinationHost = destinationHost;
+					fSendSkeletonData = (IsDlgButtonChecked(hWnd, IDC_SKELETONDATA) == 1);
+					fSendDepthData = (IsDlgButtonChecked(hWnd, IDC_DEPTHDATA) == 1);
+					SaveToRegistry();
+				}
+				break;
+		}
+
 		switch (wmId)
 		{
 		case SWM_SHOW:
@@ -446,6 +475,7 @@ INT_PTR CALLBACK DlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case IDM_ABOUT:
 			DialogBox(hInst, (LPCTSTR)IDD_ABOUTBOX, hWnd, (DLGPROC)About);
 			break;
+
 		}
 		return 1;
 	case WM_INITDIALOG:
@@ -782,6 +812,10 @@ bool SendDepthUpdate(int nWidth, int nHeight, UINT16 *pBuffer, USHORT nMinDepth,
 			byteOffset++;
 			pBuffer++;
 		}
+
+		// RLEncode our frame
+		//int rlLength = RLEncode(pDepthFrame, byteOffset, pDepthEncodedFrame);
+		//DebugOutput("%d, %d\n", byteOffset, rlLength);
 
 		// send it out the socket
 		int returnVal = send(hSocket, pDepthFrame, byteOffset, 0);
