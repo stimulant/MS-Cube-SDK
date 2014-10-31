@@ -34,6 +34,8 @@ std::string					strDestinationHost;
 std::string					strConnectedHost;
 bool						fSendSkeletonData;
 bool						fSendDepthData;
+bool						fShouldExit;
+bool						fShouldDisconnectKinect;
 
 bool UpdateKinect();
 bool UpdateKinectSkeleton();
@@ -106,19 +108,23 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	pDepthFrame = new char[247815];
 	pDepthEncodedFrame = new char[247815*2];
 	fKinectConnected = false;
+	fShouldExit = false;
+	fShouldDisconnectKinect = false;
 	HANDLE kinectThreadHandle = (HANDLE)_beginthreadex(0, 0, &KinectThread, 0, 0, 0);
 	SetThreadPriority(kinectThreadHandle, THREAD_PRIORITY_TIME_CRITICAL);
 
 	// Main message loop:
-	while (true)
+	while (!fShouldExit)
 	{
-		MSG msg;
 		while( ::PeekMessage( &msg, NULL, 0, 0, PM_REMOVE ) ) {
 			::TranslateMessage( &msg );
 			::DispatchMessage( &msg );
 		}
 	}
 
+	// close kinect
+	if (kinectSensor)
+		hr = kinectSensor->Close();
 	return (int) msg.wParam;
 }
 
@@ -135,7 +141,7 @@ void DebugOutput(LPCTSTR lpszFormat, ...)
 
 unsigned int __stdcall KinectThread(void* data)
 {
-	while (true)
+	while (!fShouldDisconnectKinect)
 	{
 		// try to connect if we aren't connected
 		if (!fKinectConnected || strDestinationHost != strConnectedHost)
@@ -153,6 +159,7 @@ unsigned int __stdcall KinectThread(void* data)
 
 	if (fKinectConnected)
 		CloseConnection();
+	fShouldExit = true;
 
 	return 0;
 }
@@ -470,6 +477,7 @@ INT_PTR CALLBACK DlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			SaveToRegistry();
 			break;
 		case SWM_EXIT:
+			fShouldDisconnectKinect = true;
 			DestroyWindow(hWnd);
 			break;
 		case IDM_ABOUT:
