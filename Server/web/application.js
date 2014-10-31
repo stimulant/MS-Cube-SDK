@@ -20,6 +20,7 @@ function blobToImage(imageData) {
 // update depth buffer
 var timeSinceUpdateDepth = 0;
 socket.on('updateDepth', function(data) {
+	//console.log("updating depth");
 	var canvas = document.getElementById('depthCanvas');
     var context = canvas.getContext('2d');
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -49,7 +50,7 @@ socket.on('updateDepth', function(data) {
 // update clients list
 var timeSinceUpdateSkeleton = 0;
 socket.on('updateSkeleton', function(data) {
-	//console.log("updating skeletons: " + data.skeletonCount);
+	//console.log("updating skeletons");
 
 	var canvas = document.getElementById('skeletonCanvas');
     var context = canvas.getContext('2d');

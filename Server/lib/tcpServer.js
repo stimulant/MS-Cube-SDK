@@ -14,6 +14,7 @@ function parseSkeleton(kinectData, data) {
 			kinectData.skeletons[s][j].z = data.readFloatLE(offset);	offset += 4;
 		}
 	}
+	kinectData.skeletonReady = true;
 }
 
 function parseDepth(kinectData, data) {
@@ -23,7 +24,7 @@ function parseDepth(kinectData, data) {
 	kinectData.depthHeight = data.readUInt16LE(offset); offset += 2;
 
 	// copy buffer data to kinectData
-	console.log("parsing depth: " + kinectData.depthWidth + ", " + kinectData.depthHeight);
+	//console.log("parsing depth: " + kinectData.depthWidth + ", " + kinectData.depthHeight);
 	data.copy(kinectData.depthBuffer, 0, offset, kinectData.depthWidth * kinectData.depthHeight + offset);
 	offset += kinectData.depthWidth * kinectData.depthHeight;
 	kinectData.depthReady = true;
@@ -43,7 +44,7 @@ function parseCommand(data, dataOffset) {
 	parseDataLength	= data.readUInt32LE(dataOffset); dataOffset += 4;
 	if (parseDataLength > 247815)
 		throw ("parseDataLength: " + parseDataLength);
-	//console.log(parseCommandId);
+	//console.log("parseCommandId: " + parseCommandId + ", parseDataLength: " + parseDataLength);
 	return dataOffset;
 }
 

@@ -17,7 +17,10 @@ function update()
 		io.sockets.emit('updateDepth', { buffer: kinectData.depthBuffer });
 		kinectData.depthReady = false;
 	}
-	io.sockets.emit('updateSkeleton', { skeletonCount: kinectData.skeletonCount, skeletons: kinectData.skeletons } );
+	if (kinectData.skeletonReady) {
+		io.sockets.emit('updateSkeleton', { skeletonCount: kinectData.skeletonCount, skeletons: kinectData.skeletons } );
+		kinectData.skeletonReady = false;
+	}
 }
 
 function connect(socket)
