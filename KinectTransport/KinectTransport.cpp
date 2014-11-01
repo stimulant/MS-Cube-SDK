@@ -37,6 +37,10 @@ bool						fSendDepthData;
 bool						fShouldExit;
 bool						fShouldDisconnectKinect;
 
+HINSTANCE					hAppInstance;
+HWND						hAppHwnd;
+
+
 bool UpdateKinect();
 bool UpdateKinectSkeleton();
 bool UpdateKinectDepth();
@@ -50,6 +54,7 @@ bool SendSkeletonUpdate(IBody** ppBodies);
 bool SendDepthUpdate(int nWidth, int nHeight, UINT16 *pBuffer, USHORT nMinDepth, USHORT nMaxDepth);
 
 // Forward declarations of functions included in this code module:
+void				SetupIcon(bool connected, bool modify = true);
 BOOL				InitInstance(HINSTANCE, int);
 BOOL				OnInitDialog(HWND hWnd);
 void				ShowContextMenu(HWND hWnd);
@@ -65,6 +70,7 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 {
 	MSG msg;
 	HACCEL hAccelTable;
+	hAppInstance = hInstance;
 
 	// Perform application initialization:
 	if (!InitInstance (hInstance, nCmdShow)) return FALSE;
@@ -148,12 +154,17 @@ unsigned int __stdcall KinectThread(void* data)
 		{
 			fKinectConnected = ConnectToHost(3000, strDestinationHost.c_str());
 			if (fKinectConnected)
+			{
+				SetupIcon(true);
 				strConnectedHost = strDestinationHost;
+			}
 		}
 		
 		if (fKinectConnected)
 		{
 			fKinectConnected = UpdateKinect();
+			if (!fKinectConnected)
+				SetupIcon(false);
 		}
 	}
 
@@ -283,18 +294,8 @@ bool SaveToRegistry()
 	return true;
 }
 
-//	Initialize the window and tray icon
-BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
+void SetupIcon(bool connected, bool modify)
 {
-	// prepare for XP style controls
-	InitCommonControls();
-
-	 // store instance handle and create dialog
-	hInst = hInstance;
-	HWND hWnd = CreateDialog( hInstance, MAKEINTRESOURCE(IDD_DLG_DIALOG),
-		NULL, (DLGPROC)DlgProc );
-	if (!hWnd) return FALSE;
-
 	// Fill the NOTIFYICONDATA structure and call Shell_NotifyIcon
 
 	// zero the structure - note:	Some Windows funtions require this but
@@ -317,27 +318,38 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	// state which structure members are valid
 	niData.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
 
-	// load the icon
-	niData.hIcon = (HICON)LoadImage(hInstance,MAKEINTRESOURCE(IDI_KINECTTRANSPORT),
-		IMAGE_ICON, GetSystemMetrics(SM_CXSMICON),GetSystemMetrics(SM_CYSMICON),
-		LR_DEFAULTCOLOR);
-
 	// the window to send messages to and the message to send
 	//		note:	the message value should be in the
 	//				range of WM_APP through 0xBFFF
-	niData.hWnd = hWnd;
+	niData.hWnd = hAppHwnd;
     niData.uCallbackMessage = SWM_TRAYMSG;
 
 	// tooltip message
     lstrcpyn(niData.szTip, _T("Kinect Transport\nis running."), sizeof(niData.szTip)/sizeof(TCHAR));
 
-	Shell_NotifyIcon(NIM_ADD,&niData);
+	// setup the two icons
+	niData.hIcon = (HICON)LoadImage(hAppInstance, MAKEINTRESOURCE(connected ? IDI_GREENLIGHT : IDI_REDLIGHT), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON),GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR);
+	Shell_NotifyIcon(modify ? NIM_MODIFY : NIM_ADD, &niData);
 
 	// free icon handle
 	if(niData.hIcon && DestroyIcon(niData.hIcon))
 		niData.hIcon = NULL;
+}
 
-	// call ShowWindow here to make the dialog initially visible
+//	Initialize the window and tray icon
+BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
+{
+	// prepare for XP style controls
+	InitCommonControls();
+
+	 // store instance handle and create dialog
+	hInst = hInstance;
+	hAppHwnd = CreateDialog( hInstance, MAKEINTRESOURCE(IDD_DLG_DIALOG),
+		NULL, (DLGPROC)DlgProc );
+	if (!hAppHwnd) return FALSE;
+
+	// setup icon
+	SetupIcon(false, false);
 
 	// get registry key for settings
 	strDestinationHost = "127.0.0.1";
@@ -664,15 +676,11 @@ bool ConnectToHost(int PortNo, const char* IPAddress)
 	// Create socket
     hSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (hSocket == INVALID_SOCKET)
-    {
         return false;
-    }  
 
     // Connect
     if (connect(hSocket, (SOCKADDR *)&target, sizeof(target)) == SOCKET_ERROR)
-    {
         return false;
-    }
     else
         return true;
 }

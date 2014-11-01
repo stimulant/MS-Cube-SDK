@@ -111,6 +111,9 @@
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\..\..\..\Dropbox\green_icon.ico" />
+    <Image Include="..\..\..\..\Dropbox\red_light.ico" />
+    <Image Include="icon1.ico" />
     <Image Include="KinectTransport.ico" />
   </ItemGroup>
   <ItemGroup>
