@@ -97,11 +97,13 @@ function clearCanvas(canvasName) {
 // send updated parameters on an interval
 setInterval(
 	function() {
+		/*
 		if (timeSinceUpdateDepth > 0.2)
 			clearCanvas('depthCanvas');
 		if (timeSinceUpdateSkeleton > 0.2)
 			clearCanvas('skeletonCanvas');
 		timeSinceUpdateDepth += 1000.0/30.0;
 		timeSinceUpdateSkeleton += 1000.0/30.0;
+		*/
 	},
 1000.0/30.0);
