@@ -21,5 +21,5 @@ for (var s=0; s < 6; s++) {
 	}
 }
 
-tcpServer.start('127.0.0.1', 3000, kinectData);
-webServer.start('127.0.0.1', 8000, kinectData);
+tcpServer.start('0.0.0.0', 3000, kinectData);
+webServer.start('0.0.0.0', 8000, kinectData);
