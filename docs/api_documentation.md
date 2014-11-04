@@ -17,6 +17,7 @@ A Kinect API stream consists of a sequence of messages. Each message has a 4-byt
 
 ### Body Update (command 0)
 
+The Body Update command sends a list of the bodies that the Kinect detects and all of their joint positions.
 Header that is present no matter how many bodies are present.
 
 | Byte   | Description
@@ -56,3 +57,12 @@ After this there is a repeating section for each body that indicates positions o
 |189-200 | JointType_ThumbRight XYZ position
 
 
+### Depth Update (command 1)
+
+The Depth Update command sends the current depth buffer from the Kinect.
+
+| Byte   | Description
+|--------|----------------------------
+|0-1     | Width of depth buffer
+|2-3     | Height of depth buffer
+|4-247815| Depth frame buffer (8 bytes per pixel)

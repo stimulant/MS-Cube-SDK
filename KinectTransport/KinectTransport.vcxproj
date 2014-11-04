@@ -100,6 +100,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="KinectData.cpp" />
     <ClCompile Include="KinectTransport.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -107,17 +108,17 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="KinectData.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\..\Dropbox\green_icon.ico" />
-    <Image Include="..\..\..\..\Dropbox\red_light.ico" />
-    <Image Include="icon1.ico" />
-    <Image Include="KinectTransport.ico" />
+    <ResourceCompile Include="KinectTransport.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="KinectTransport.rc" />
+    <Image Include="resources\green_icon.ico" />
+    <Image Include="resources\KinectTransport.ico" />
+    <Image Include="resources\red_light.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

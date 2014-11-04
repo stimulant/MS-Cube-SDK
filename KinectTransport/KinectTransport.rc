@@ -28,8 +28,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_GREENLIGHT          ICON                    "C:\\Users\\joel\\Dropbox\\green_icon.ico"
-IDI_REDLIGHT            ICON                    "C:\\Users\\joel\\Dropbox\\red_light.ico"
+IDI_GREENLIGHT          ICON                    "resources/green_icon.ico"
+IDI_REDLIGHT            ICON                    "resources/red_light.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
