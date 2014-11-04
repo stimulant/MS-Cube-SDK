@@ -70,28 +70,40 @@ function start(host, port, kinectData) {
 
 			while (dataLeft > 0) {				
 				// if we don't have a command yet, parse it out of data
-				if (parseCommandId == -1)
-					dataOffset = parseCommand(data, dataOffset);
+				if (parseCommandId == -1) {
+					try {
+						dataOffset = parseCommand(data, dataOffset);
+					}
+					catch(e) {
+						console.log(e);
 
-				// parse data
-				dataOffset = parseData(data, dataOffset);
-
-				// if we are done receiving the buffer, go ahead and parse skeleton or depth
-				if (parseDataOffset >= parseDataLength-1) {
-					//console.log("parseDataOffset: " + parseDataOffset + " parseDataLength: " + parseDataLength);
-					if (parseCommandId == 0)
-						parseSkeleton(kinectData, parseBuffer);
-					else if (parseCommandId == 1)
-						parseDepth(kinectData, parseBuffer);
-
-					// reset command
-					parseCommandId = -1; parseDataOffset = 0; parseDataLength = 0;
+						// skip this data message as we are unable to parse a command
+						parseCommandId = -1; parseDataOffset = 0; parseDataLength = 0;
+						dataLeft = 0;
+					}
 				}
 
-				// check if we have any data left in packet
-				dataLeft -= dataOffset;
-				//if (dataLeft > 0)
-				//	console.log("data left: " + dataLeft);
+				if (parseCommandId != -1) {
+					// parse command's data
+					dataOffset = parseData(data, dataOffset);
+
+					// if we are done receiving the buffer, go ahead and parse skeleton or depth
+					if (parseDataOffset >= parseDataLength-1) {
+						//console.log("parseDataOffset: " + parseDataOffset + " parseDataLength: " + parseDataLength);
+						if (parseCommandId == 0)
+							parseSkeleton(kinectData, parseBuffer);
+						else if (parseCommandId == 1)
+							parseDepth(kinectData, parseBuffer);
+
+						// reset command
+						parseCommandId = -1; parseDataOffset = 0; parseDataLength = 0;
+					}
+
+					// check if we have any data left in packet
+					dataLeft -= dataOffset;
+					//if (dataLeft > 0)
+					//	console.log("data left: " + dataLeft);
+				}
 			}
 		});
 		

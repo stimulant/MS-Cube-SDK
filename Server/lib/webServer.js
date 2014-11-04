@@ -25,30 +25,6 @@ function update()
 
 function connect(socket)
 {
-	/*
-	// control individual clients
-	socket.on('startclient', this.startclient.bind(this) );
-	socket.on('killclient', this.killclient.bind(this) );
-	socket.on('restartclient', this.restartclient.bind(this) );
-
-	// control all clients
-	socket.on('startall', this.startall.bind(this));
-	socket.on('killall', this.killall.bind(this));
-	socket.on('restartall', this.restartall.bind(this));
-
-	// user disconnects
-	socket.on('disconnect', function(){});
-
-	// params
-	socket.on('updateparams', this.updateparams.bind(this));
-	socket.on('setcurrentparam', this.setcurrentparam.bind(this));
-	*/
-
-	/*
-	fs.readFile(__dirname + '/../web/Logo.png', function(err, buffer){
-		console.log("sending data: " + buffer.length);
-        socket.emit('updateDepth', { buffer: buffer });
-    });*/
 }
 
 function start(host, port, kData)
