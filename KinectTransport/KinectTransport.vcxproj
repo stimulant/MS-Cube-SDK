@@ -103,6 +103,8 @@
     <ClCompile Include="KinectAPI.cpp" />
     <ClCompile Include="KinectData.cpp" />
     <ClCompile Include="KinectTransport.cpp" />
+    <ClCompile Include="RegistryHelper.cpp" />
+    <ClCompile Include="SocketHelper.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -111,7 +113,9 @@
   <ItemGroup>
     <ClInclude Include="KinectAPI.h" />
     <ClInclude Include="KinectData.h" />
+    <ClInclude Include="RegistryHelper.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="SocketHelper.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>

@@ -3,6 +3,9 @@
 #include <process.h>
 #include <ctime>
 #include "KinectData.h"
+#include "KinectAPI.h"
+#include "SocketHelper.h"
+#include "RegistryHelper.h"
 
 #define TRAYICONID	1//				ID number for the Notify Icon
 #define SWM_TRAYMSG	WM_APP//		the message ID sent to our window
@@ -17,15 +20,20 @@ HINSTANCE		hAppInstance;
 HWND			hAppHwnd;
 bool			fShouldExit;
 bool			fShouldDisconnectKinect;
-bool			fSocketConnected;
-std::string		strDestinationHost;
-std::string		strConnectedHost;
-bool			fSendDepthData;
-bool			fSendBodiesData;
+
+// socket connections
+SOCKET			hSocket[4];
+bool			fSocketConnected[4];
+std::string		strDestinationHost[4];
+std::string		strConnectedHost[4];
+bool			fHostEnabled[4];
+bool			fSendDepthData[4];
+bool			fSendBodiesData[4];
 
 // Kinect
 KinectData *pKinectData;
 unsigned int __stdcall KinectThread(void* data);
+char* pDepthBinary = new char[247815];
 
 // Forward declarations of functions included in this code module:
 void				SetupIcon(bool connected, bool modify = true);
@@ -52,11 +60,15 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	// create Kinect data source
 	pKinectData = new KinectData();
-
-	fSocketConnected = false;
 	fShouldExit = false;
 	fShouldDisconnectKinect = false;
+	for (int i=0; i<4; i++)
+		fSocketConnected[i] = false;
 
+	// start winsock
+	SocketHelper::StartWinsock();
+
+	// start thread to poll kinect and send data
 	HANDLE kinectThreadHandle = (HANDLE)_beginthreadex(0, 0, &KinectThread, 0, 0, 0);
 	SetThreadPriority(kinectThreadHandle, THREAD_PRIORITY_TIME_CRITICAL);
 
@@ -71,117 +83,114 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 	// close kinect
 	delete pKinectData;
-	
-	return (int) msg.wParam;
-}
 
-void DebugOutput(LPCTSTR lpszFormat, ...)
-{
-    va_list args;
-    va_start(args, lpszFormat);
-    int nBuf;
-    TCHAR szBuffer[512]; // get rid of this hard-coded buffer
-    nBuf = _vsntprintf(szBuffer, 511, lpszFormat, args);
-    ::OutputDebugString(szBuffer);
-    va_end(args);
+	// stop winsock
+	SocketHelper::StopWinsock();
+
+	return (int) msg.wParam;
 }
 
 unsigned int __stdcall KinectThread(void* data)
 {
 	while (!fShouldDisconnectKinect)
 	{
-		// try to connect if we aren't connected
-		if (!fSocketConnected || strDestinationHost != strConnectedHost)
+		// try to connect if we aren't connected to all valid
+		for (int i=0; i<4; i++)
 		{
-			fSocketConnected = pKinectData->ConnectToHost(3000, strDestinationHost.c_str());
-			if (fSocketConnected)
+			if (fHostEnabled[i])
 			{
-				SetupIcon(true);
-				strConnectedHost = strDestinationHost;
+				if (!fSocketConnected[i] || strDestinationHost[i] != strConnectedHost[i])
+				{
+					fSocketConnected[i] = SocketHelper::ConnectToHost(hSocket[i], 3000, strDestinationHost[i].c_str());
+					if (fSocketConnected[i])
+					{
+						SetupIcon(true);
+						strConnectedHost[i] = strDestinationHost[i];
+					}
+				}
+			}
+			else if (fSocketConnected[i])
+			{
+				SocketHelper::CloseConnection(hSocket[i]);
+				fSocketConnected[i] = false;
+
+				bool anyConnected = false;
+				for (int i=0; i<4; i++)
+					anyConnected |= fSocketConnected[i];
+				if (!anyConnected)
+					SetupIcon(false);
 			}
 		}
-		
-		if (fSocketConnected)
+
+		// check if we should bother polling data at all
+		bool getDepth = false, getBodies = false;
+		for (int i=0; i<4; i++)
 		{
-			fSocketConnected = pKinectData->UpdateKinect(fSendBodiesData, fSendDepthData);
-			if (!fSocketConnected)
-				SetupIcon(false);
+			getBodies |= fSendBodiesData[i];
+			getDepth |= fSendDepthData[i];
+		}
+
+		// retrieve and send body data
+		if (getBodies)
+		{
+			IBody* ppBodies[BODY_COUNT] = {0};
+			if (pKinectData->GetKinectBodies(ppBodies))
+			{
+				// turn bodies into a binary frame
+				char binary[1208];
+				int binarySize = KinectAPI::BodiesToBinary(ppBodies, binary);
+
+				// send data out the sockets
+				for (int i=0; i<4; i++)
+				{
+					if (send(hSocket[i], binary, binarySize, 0) == -1)
+						fSocketConnected[i] = false;
+				}
+
+				// release bodies data
+				for (int i = 0; i < _countof(ppBodies); ++i)
+				{
+					if (ppBodies[i] != NULL)
+						ppBodies[i]->Release();
+				}
+			}
+		}
+
+		// retrieve and send depth data
+		if (getDepth)
+		{
+			IDepthFrame* pDepthFrame = NULL;
+			int nWidth = 0;
+			int nHeight = 0;
+			USHORT nMinDepth = 0;
+			USHORT nMaxDepth = 0;
+			UINT nBufferSize = 0;
+			UINT16 *pBuffer = NULL;
+			if (pKinectData->GetKinectDepth(&pDepthFrame, nWidth, nHeight, pBuffer, nMinDepth, nMaxDepth))
+			{
+				// turn depth into a binary frame
+				int binarySize = KinectAPI::DepthToBinary(nWidth, nHeight, pBuffer, nMinDepth, nMaxDepth, pDepthBinary);
+
+				for (int i=0; i<4; i++)
+				{
+					if (send(hSocket[i], pDepthBinary, binarySize, 0) == -1)
+						fSocketConnected[i] = false;
+				}
+			}
+
+			if (pDepthFrame != NULL)
+				pDepthFrame->Release();
 		}
 	}
 
-	if (fSocketConnected)
-		pKinectData->CloseConnection();
+	for (int i=0; i<4; i++)
+	{
+		if (fSocketConnected[i])
+			SocketHelper::CloseConnection(hSocket[i]);
+	}
 	fShouldExit = true;
 
 	return 0;
-}
-
-
-bool GetBoolRegValue(HKEY hKey, const std::string &strValueName, bool &bValue, bool bDefaultValue)
-{
-    DWORD nDefValue((bDefaultValue) ? 1 : 0);
-    DWORD nResult(nDefValue);
-	DWORD dwBufferSize(sizeof(DWORD));
-    LONG nError = ::RegQueryValueEx(hKey,
-        strValueName.c_str(),
-        0,
-        NULL,
-        reinterpret_cast<LPBYTE>(&nResult),
-        &dwBufferSize);
-    if (ERROR_SUCCESS == nError)
-    {
-        bValue = (nResult != 0);
-    }
-    return (ERROR_SUCCESS == nError);
-}
-
-
-LONG GetStringRegValue(HKEY hKey, const std::string &strValueName, std::string &strValue, const std::string &strDefaultValue)
-{
-    strValue = strDefaultValue;
-    CHAR szBuffer[512];
-    DWORD dwBufferSize = sizeof(szBuffer);
-    ULONG nError;
-    nError = RegQueryValueEx(hKey, strValueName.c_str(), 0, NULL, (LPBYTE)szBuffer, &dwBufferSize);
-    if (ERROR_SUCCESS == nError)
-    {
-        strValue = szBuffer;
-    }
-    return (ERROR_SUCCESS == nError);
-}
-
-bool CreateRegistryKey(HKEY hKeyRoot, LPCTSTR pszSubKey, HKEY &hNewKey)
-{
-    DWORD dwFunc;
-    LONG  lRet;
-    SECURITY_DESCRIPTOR SD;
-    SECURITY_ATTRIBUTES SA;
-
-    if(!InitializeSecurityDescriptor(&SD, SECURITY_DESCRIPTOR_REVISION))
-        return false;
-    if(!SetSecurityDescriptorDacl(&SD, true, 0, false))
-        return false;
-
-    SA.nLength             = sizeof(SA);
-    SA.lpSecurityDescriptor = &SD;
-    SA.bInheritHandle      = false;
-    lRet = RegCreateKeyEx(
-        hKeyRoot,
-        pszSubKey,
-        0,
-        (LPTSTR)NULL,
-        REG_OPTION_NON_VOLATILE,
-        KEY_WRITE,
-        &SA,
-        &hNewKey,
-        &dwFunc
-    );
-
-    if(lRet == ERROR_SUCCESS)
-        return true;
-
-    SetLastError((DWORD)lRet);
-    return false;
 }
 
 bool LoadFromRegistry()
@@ -194,18 +203,28 @@ bool LoadFromRegistry()
 	if (lRes != ERROR_SUCCESS)
 		return false;
 
-	if (GetStringRegValue(hKey, "DestinationHost", strValue, "127.0.0.1"))
-		strDestinationHost = strValue;
-	else
-		return false;
-	if (GetBoolRegValue(hKey, "SendSkeletonData", bValue, true))
-		fSendBodiesData = bValue;
-	else
-		return false;
-	if (GetBoolRegValue(hKey, "SendDepthData", bValue, true))
-		fSendDepthData = bValue;
-	else
-		return false;
+	for (int i=0; i<4; i++)
+	{
+		std::string keyName;
+		
+		keyName = "DestinationHost" + i;
+		if (RegistryHelper::GetStringRegValue(hKey, keyName.c_str(), strValue, "127.0.0.1"))
+			strDestinationHost[i] = strValue;
+		else
+			return false;
+
+		keyName = "SendSkeletonData" + i;
+		if (RegistryHelper::GetBoolRegValue(hKey, keyName.c_str(), bValue, true))
+			fSendBodiesData[i] = bValue;
+		else
+			return false;
+
+		keyName = "SendDepthData" + i;
+		if (RegistryHelper::GetBoolRegValue(hKey, keyName.c_str(), bValue, true))
+			fSendDepthData[i] = bValue;
+		else
+			return false;
+	}
 
 	RegCloseKey(hKey);
 	return true;
@@ -220,18 +239,28 @@ bool SaveToRegistry()
 		// no key, lets create one
 		HKEY hSoftwareKey;
 		lRes = RegOpenKeyEx(HKEY_CURRENT_USER, "SOFTWARE", 0, KEY_READ | KEY_SET_VALUE, &hSoftwareKey);
-		if (lRes != ERROR_SUCCESS || !CreateRegistryKey(hSoftwareKey, "KinectTransport", hKey))
+		if (lRes != ERROR_SUCCESS || !RegistryHelper::CreateRegistryKey(hSoftwareKey, "KinectTransport", hKey))
 			return false;
 	}
 
 	// now save our values
-	lRes = RegSetValueEx(hKey, "DestinationHost", 0, REG_SZ, (unsigned char*)strDestinationHost.c_str(), strDestinationHost.length() * sizeof(TCHAR));
-	DWORD dValue = fSendBodiesData ? 1 : 0;
-	lRes = RegSetValueEx(hKey, "SendSkeletonData", 0, REG_DWORD, (unsigned char*)&dValue, sizeof(DWORD));
-	dValue = fSendDepthData ? 1 : 0;
-	lRes = RegSetValueEx(hKey, "SendDepthData", 0, REG_DWORD, (unsigned char*)&dValue, sizeof(DWORD));
-	RegCloseKey(hKey);
+	for (int i=0; i<4; i++)
+	{
+		std::string keyName;
 
+		keyName = "DestinationHost" + i;
+		lRes = RegSetValueEx(hKey, keyName.c_str(), 0, REG_SZ, (unsigned char*)strDestinationHost[i].c_str(), strDestinationHost[i].length() * sizeof(TCHAR));
+
+		keyName = "SendSkeletonData" + i;
+		DWORD dValue = fSendBodiesData[i] ? 1 : 0;
+		lRes = RegSetValueEx(hKey, keyName.c_str(), 0, REG_DWORD, (unsigned char*)&dValue, sizeof(DWORD));
+
+		keyName = "SendDepthData" + i;
+		dValue = fSendDepthData[i] ? 1 : 0;
+		lRes = RegSetValueEx(hKey, keyName.c_str(), 0, REG_DWORD, (unsigned char*)&dValue, sizeof(DWORD));
+	}
+
+	RegCloseKey(hKey);
 	return true;
 }
 
@@ -293,10 +322,13 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	SetupIcon(false, false);
 
 	// get registry key for settings
-	strDestinationHost = "127.0.0.1";
-	strConnectedHost = "";
-	fSendBodiesData = true;
-	fSendDepthData = false;
+	for (int i=0; i<4; i++)
+	{
+		strDestinationHost[i] = "127.0.0.1";
+		strConnectedHost[i] = "";
+		fSendBodiesData[i] = true;
+		fSendDepthData[i] = false;
+	}
 
 	// try to load from registry, if we cannot try to save (in order to create key
 	if (!LoadFromRegistry())
@@ -369,6 +401,10 @@ ULONGLONG GetDllVersion(LPCTSTR lpszDllName)
 INT_PTR CALLBACK DlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	int wmId, wmEvent;
+	int enabledControls[4] = { IDC_ENABLED1, IDC_ENABLED2, IDC_ENABLED3, IDC_ENABLED4 };
+	int hostControls[4] = { IDC_HOST1, IDC_HOST2, IDC_HOST3, IDC_HOST4 };
+	int bodiesEnabledControls[4] = { IDC_BODIESENABLED1, IDC_BODIESENABLED2, IDC_BODIESENABLED3, IDC_BODIESENABLED4 };
+	int depthEnabledControls[4] = { IDC_DEPTHENABLED1, IDC_DEPTHENABLED2, IDC_DEPTHENABLED3, IDC_DEPTHENABLED4 };
 
 	switch (message) 
 	{
@@ -399,14 +435,26 @@ INT_PTR CALLBACK DlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wmEvent)
 		{
 			case BN_CLICKED:
-				if (wmId == IDC_SKELETONDATA || wmId == IDC_DEPTHDATA)
+				bool changed = false;
+				for (int i=0; i<4; i++)
+				{
+					changed |= (wmId == enabledControls[i]);
+					changed |= (wmId == bodiesEnabledControls[i]);
+					changed |= (wmId == depthEnabledControls[i]);
+				}
+					
+				if (changed)
 				{
 					// get values from window and write them to registry
-					char destinationHost[100];
-					GetDlgItemText(hWnd, IDC_DESTINATIONHOST, destinationHost, 100);
-					strDestinationHost = destinationHost;
-					fSendBodiesData = (IsDlgButtonChecked(hWnd, IDC_SKELETONDATA) == 1);
-					fSendDepthData = (IsDlgButtonChecked(hWnd, IDC_DEPTHDATA) == 1);
+					for (int i=0; i<4; i++)
+					{
+						char destinationHost[100];
+						GetDlgItemText(hWnd, hostControls[i], destinationHost, 100);
+						strDestinationHost[i] = destinationHost;
+						fHostEnabled[i] = (IsDlgButtonChecked(hWnd, enabledControls[i]) == 1);
+						fSendBodiesData[i] = (IsDlgButtonChecked(hWnd, bodiesEnabledControls[i]) == 1);
+						fSendDepthData[i] = (IsDlgButtonChecked(hWnd, depthEnabledControls[i]) == 1);
+					}
 					SaveToRegistry();
 				}
 				break;
@@ -415,18 +463,26 @@ INT_PTR CALLBACK DlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (wmId)
 		{
 		case SWM_SHOW:
-			SetDlgItemText(hWnd, IDC_DESTINATIONHOST, strDestinationHost.c_str());
-			CheckDlgButton(hWnd, IDC_SKELETONDATA, fSendBodiesData ? 1 : 0);
-			CheckDlgButton(hWnd, IDC_DEPTHDATA, fSendDepthData ? 1 : 0);
+			for (int i=0; i<4; i++)
+			{
+				SetDlgItemText(hWnd, hostControls[i], strDestinationHost[i].c_str());
+				CheckDlgButton(hWnd, enabledControls[i], fHostEnabled[i] ? 1 : 0);
+				CheckDlgButton(hWnd, bodiesEnabledControls[i], fSendBodiesData[i] ? 1 : 0);
+				CheckDlgButton(hWnd, depthEnabledControls[i], fSendDepthData[i] ? 1 : 0);
+			}
 			ShowWindow(hWnd, SW_RESTORE);
 			break;
 		case IDOK:
 			// get values from window and write them to registry
-			char destinationHost[100];
-			GetDlgItemText(hWnd, IDC_DESTINATIONHOST, destinationHost, 100);
-			strDestinationHost = destinationHost;
-			fSendBodiesData = (IsDlgButtonChecked(hWnd, IDC_SKELETONDATA) == 1);
-			fSendDepthData = (IsDlgButtonChecked(hWnd, IDC_DEPTHDATA) == 1);
+			for (int i=0; i<4; i++)
+			{
+				char destinationHost[100];
+				GetDlgItemText(hWnd, hostControls[i], destinationHost, 100);
+				strDestinationHost[i] = destinationHost;
+				fHostEnabled[i] = (IsDlgButtonChecked(hWnd, enabledControls[i]) == 1);
+				fSendBodiesData[i] = (IsDlgButtonChecked(hWnd, bodiesEnabledControls[i]) == 1);
+				fSendDepthData[i] = (IsDlgButtonChecked(hWnd, depthEnabledControls[i]) == 1);
+			}
 			SaveToRegistry();
 			break;
 		case SWM_EXIT:
