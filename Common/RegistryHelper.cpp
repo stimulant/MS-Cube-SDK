@@ -1,4 +1,4 @@
-#include "stdafx.h"
+#include <windows.h>
 #include "RegistryHelper.h"
 
 bool RegistryHelper::GetBoolRegValue(HKEY hKey, const std::string &strValueName, bool &bValue, bool bDefaultValue)

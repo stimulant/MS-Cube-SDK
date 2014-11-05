@@ -1,4 +1,16 @@
-#include "stdafx.h"
+// Windows Header Files:
+#include <windows.h>
+#include <Windowsx.h>
+#include <commctrl.h>
+#include <Shellapi.h>
+#include <Shlwapi.h>
+
+// C RunTime Header Files
+#include <stdlib.h>
+#include <malloc.h>
+#include <memory.h>
+#include <tchar.h>
+
 #include "resource.h"
 #include <process.h>
 #include <ctime>
@@ -101,7 +113,7 @@ unsigned int __stdcall KinectThread(void* data)
 			{
 				if (!fSocketConnected[i] || strDestinationHost[i] != strConnectedHost[i])
 				{
-					fSocketConnected[i] = SocketHelper::ConnectToHost(hSocket[i], 3000, strDestinationHost[i].c_str());
+					fSocketConnected[i] = SocketHelper::ConnectToServer(hSocket[i], 3000, strDestinationHost[i].c_str());
 					if (fSocketConnected[i])
 					{
 						SetupIcon(true);

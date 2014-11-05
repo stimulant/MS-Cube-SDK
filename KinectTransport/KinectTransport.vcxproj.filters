@@ -13,45 +13,42 @@
       <UniqueIdentifier>{bf9ac592-9189-4db1-9adf-928dfce57b18}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe</Extensions>
     </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{d252a8a4-390c-4420-bbd9-e24abf6b6142}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KinectTransport.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\Common\KinectAPI.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="KinectData.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\Common\KinectData.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="KinectAPI.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\Common\RegistryHelper.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="SocketHelper.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="RegistryHelper.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\Common\SocketHelper.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="stdafx.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\Common\KinectAPI.h">
+      <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="KinectData.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\Common\KinectData.h">
+      <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="KinectAPI.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\Common\RegistryHelper.h">
+      <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="SocketHelper.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="RegistryHelper.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\Common\SocketHelper.h">
+      <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

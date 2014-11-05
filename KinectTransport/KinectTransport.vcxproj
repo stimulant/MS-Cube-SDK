@@ -57,10 +57,10 @@
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-      <AdditionalIncludeDirectories>$(KINECTSDK20_DIR)\inc</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(KINECTSDK20_DIR)\inc;..\Common</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>ws2_32.lib;kinect20.lib;comctl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -100,23 +100,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="KinectAPI.cpp" />
-    <ClCompile Include="KinectData.cpp" />
+    <ClCompile Include="..\Common\KinectAPI.cpp" />
+    <ClCompile Include="..\Common\KinectData.cpp" />
+    <ClCompile Include="..\Common\RegistryHelper.cpp" />
+    <ClCompile Include="..\Common\SocketHelper.cpp" />
     <ClCompile Include="KinectTransport.cpp" />
-    <ClCompile Include="RegistryHelper.cpp" />
-    <ClCompile Include="SocketHelper.cpp" />
-    <ClCompile Include="stdafx.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="KinectAPI.h" />
-    <ClInclude Include="KinectData.h" />
-    <ClInclude Include="RegistryHelper.h" />
+    <ClInclude Include="..\Common\KinectAPI.h" />
+    <ClInclude Include="..\Common\KinectData.h" />
+    <ClInclude Include="..\Common\RegistryHelper.h" />
+    <ClInclude Include="..\Common\SocketHelper.h" />
     <ClInclude Include="Resource.h" />
-    <ClInclude Include="SocketHelper.h" />
-    <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="KinectTransport.rc" />

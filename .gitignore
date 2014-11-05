@@ -39,5 +39,7 @@ Thumbs.db
 KinectTransport/Debug
 KinectTransport/Release
 KinectTransport/ipch
+Samples/CinderSample/vc2012/Debug
+Samples/CinderSample/vc2012/Release
 
 # assets

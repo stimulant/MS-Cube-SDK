@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "KinectAPI.h"
 
 #pragma pack(push, 1) // exact fit - no padding

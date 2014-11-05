@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "SocketHelper.h"
 
 bool SocketHelper::StartWinsock()
@@ -23,7 +22,7 @@ void SocketHelper::StopWinsock()
 	WSACleanup();
 }
 
-bool SocketHelper::ConnectToHost(SOCKET& hSocket, int PortNo, const char* IPAddress)
+bool SocketHelper::ConnectToServer(SOCKET& hSocket, int PortNo, const char* IPAddress)
 {
     // Setup socket address
     SOCKADDR_IN target;
@@ -41,6 +40,32 @@ bool SocketHelper::ConnectToHost(SOCKET& hSocket, int PortNo, const char* IPAddr
         return false;
     else
         return true;
+}
+
+bool SocketHelper::WaitForClient(SOCKET& hServerSocket, SOCKET& hClientSocket, int PortNo)
+{
+	// Setup socket address (listen on any port
+	SOCKADDR_IN target, client;
+    target.sin_family = AF_INET;
+    target.sin_port = htons( PortNo );
+	target.sin_addr.s_addr = INADDR_ANY;
+
+	// Create a socket
+    hServerSocket = socket(AF_INET, SOCK_STREAM, 0);
+	if (hServerSocket == INVALID_SOCKET)
+        return false;
+      
+    // Bind
+    if(bind(hServerSocket,(struct sockaddr *)&target , sizeof(target)) == SOCKET_ERROR)
+		return false;
+      
+    // Listen to incoming connections
+    listen(hServerSocket, 1);
+    int c = sizeof(struct sockaddr_in);
+    hClientSocket = accept(hServerSocket, (struct sockaddr *)&client, &c);
+    if (hClientSocket == INVALID_SOCKET)
+		return false;
+    return true;
 }
 
 void SocketHelper::CloseConnection(SOCKET& hSocket)

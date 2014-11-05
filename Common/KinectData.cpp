@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "KinectData.h"
 
 #define KINECT_DEPTH_WIDTH 512
