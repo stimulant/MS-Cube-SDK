@@ -138,8 +138,8 @@ unsigned int __stdcall KinectThread(void* data)
 		bool getDepth = false, getBodies = false;
 		for (int i=0; i<4; i++)
 		{
-			getBodies |= fSendBodiesData[i];
-			getDepth |= fSendDepthData[i];
+			getBodies |= (fSocketConnected[i] && fHostEnabled[i] && fSendBodiesData[i]);
+			getDepth |= (fSocketConnected[i] && fHostEnabled[i] && fSendDepthData[i]);
 		}
 
 		// retrieve and send body data
@@ -155,8 +155,11 @@ unsigned int __stdcall KinectThread(void* data)
 				// send data out the sockets
 				for (int i=0; i<4; i++)
 				{
-					if (send(hSocket[i], binary, binarySize, 0) == -1)
-						fSocketConnected[i] = false;
+					if (fSocketConnected[i] && fHostEnabled[i] && fSendBodiesData[i])
+					{
+						if (send(hSocket[i], binary, binarySize, 0) == -1)
+							fSocketConnected[i] = false;
+					}
 				}
 
 				// release bodies data
@@ -185,8 +188,11 @@ unsigned int __stdcall KinectThread(void* data)
 
 				for (int i=0; i<4; i++)
 				{
-					if (send(hSocket[i], pDepthBinary, binarySize, 0) == -1)
-						fSocketConnected[i] = false;
+					if (fSocketConnected[i] && fHostEnabled[i] && fSendDepthData[i])
+					{
+						if (send(hSocket[i], pDepthBinary, binarySize, 0) == -1)
+							fSocketConnected[i] = false;
+					}
 				}
 			}
 

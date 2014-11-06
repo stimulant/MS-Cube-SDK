@@ -127,3 +127,21 @@ int KinectAPI::DepthToBinary(int nWidth, int nHeight, UINT16 *pBuffer, USHORT nM
 	//DebugOutput("%d, %d\n", byteOffset, rlLength);
 	return byteOffset;
 }
+
+CommandType KinectAPI::BinaryToCommandAndLength(char* binary, int& binaryLength)
+{
+	// not a valid command 
+	if (binary[0] != BodiesCommand && binary[0] != DepthCommand)
+		return InvalidCommand;
+
+	binaryLength = *(unsigned long*)(binary + 1);
+	return (CommandType)binary[0];
+}
+
+bool KinectAPI::BinaryToDepth(char* binary, char* depthBuffer, int& width, int& height)
+{
+	width = *(unsigned short*)(binary);
+	height = *(unsigned short*)(binary + 2);
+	memcpy(depthBuffer, binary + 4, width * height);
+	return true;
+}
