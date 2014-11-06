@@ -76,7 +76,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>..\include;"..\..\..\..\cinder\include";"..\..\..\..\cinder\boost"</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(KINECTSDK20_DIR)\inc;..\include;"..\..\..\..\cinder\include";"..\..\..\..\cinder\boost";..\..\..\Common</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;NOMINMAX;_WIN32_WINNT=0x0502;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader />

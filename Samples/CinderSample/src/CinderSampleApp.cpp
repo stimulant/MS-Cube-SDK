@@ -1,6 +1,7 @@
 #include "cinder/app/AppNative.h"
 #include "cinder/gl/gl.h"
 #include "cinder/gl/Texture.h"
+#include "Kinect.h"
 #include "KinectAPI.h"
 #include "SocketHelper.h"
 
@@ -19,6 +20,9 @@ class CinderSampleApp : public AppNative {
 	SOCKET mClientSocket;
 	char* mRecvBuffer;
 
+	int mBodyCount;
+	std::map< JointType, std::array<float, 3> > mJointPositions[6];
+
 	uint8_t depthBuffer[KINECT_DEPTH_WIDTH * KINECT_DEPTH_HEIGHT];
 	Channel8u depthChannel;
 	gl::Texture depthTexture;
@@ -35,6 +39,7 @@ void CinderSampleApp::setup()
 	mConnected = false;
 	mRecvBuffer = new char[MAXRECV];
 	depthChannel = Channel(KINECT_DEPTH_WIDTH, KINECT_DEPTH_HEIGHT, KINECT_DEPTH_WIDTH, 1, depthBuffer);
+	mBodyCount = 0;
 }
 
 void CinderSampleApp::mouseDown( MouseEvent event )
@@ -74,18 +79,20 @@ void CinderSampleApp::update()
 			// parse received bytes
 			int binaryLength = 0;
 			CommandType command = KinectAPI::BinaryToCommandAndLength(mRecvBuffer, binaryLength);
-			app::console() << "Recv bytes:" << result << " command: " << command << " binaryLength: " << binaryLength <<endl;
+			//app::console() << "Recv bytes:" << result << " command: " << command << " binaryLength: " << binaryLength <<endl;
 
 			switch (command)
 			{
 				case BodiesCommand:
-
+					{
+						KinectAPI::BinaryToBodies(mRecvBuffer, mJointPositions, mBodyCount);
+					}
 					break;
 				case DepthCommand:
 					{
 						// copy data from binary and create texture from it
 						int width, height;
-						KinectAPI::BinaryToDepth((mRecvBuffer + 5), (char*)depthBuffer, width, height);
+						KinectAPI::BinaryToDepth(mRecvBuffer, (char*)depthBuffer, width, height);
 						depthTexture = gl::Texture(depthChannel);
 					}
 					break;
@@ -97,8 +104,21 @@ void CinderSampleApp::update()
 void CinderSampleApp::draw()
 {
 	// clear out the window with black
-	gl::clear(Color(0, 0, 0)); 
-	gl::draw(depthTexture);
+	gl::clear(Color(0, 0, 0));
+
+	// draw depth
+	if (depthTexture)
+		gl::draw(depthTexture, Rectf(0.0f, 0.0f, (float)app::getWindowWidth(), (float)app::getWindowHeight()));
+
+	// draw bodies
+	for (int i=0; i<mBodyCount; i++)
+	{
+		gl::color(ColorA::white());
+		for (int j=0; j<JointType_Count; j++)
+			gl::drawStrokedCircle(Vec2f(mJointPositions[i][(JointType)j][0], 1.0f - mJointPositions[i][(JointType)j][1]) * 
+				Vec2f((float)app::getWindowWidth()/2.0f, (float)app::getWindowHeight()/2.0f) + 
+				Vec2f((float)app::getWindowWidth()/2.0f, 0.0f), 5.0f);
+	}
 }
 
 CINDER_APP_NATIVE( CinderSampleApp, RendererGl )

@@ -140,8 +140,30 @@ CommandType KinectAPI::BinaryToCommandAndLength(char* binary, int& binaryLength)
 
 bool KinectAPI::BinaryToDepth(char* binary, char* depthBuffer, int& width, int& height)
 {
-	width = *(unsigned short*)(binary);
-	height = *(unsigned short*)(binary + 2);
-	memcpy(depthBuffer, binary + 4, width * height);
+	// parse out width, height and depth from binary data
+	DepthUpdateHeader depthHeader = *(DepthUpdateHeader*)(binary);
+	width = depthHeader.width;
+	height = depthHeader.height;
+	memcpy(depthBuffer, binary + sizeof(DepthUpdateHeader), width * height);
+	return true;
+}
+
+bool KinectAPI::BinaryToBodies(char* binary, std::map< JointType, std::array<float, 3> > *jointPositions, int& bodyCount)
+{
+	// parse out number of bodies and joint positions from binary data
+	BodiesUpdateHeader bodiesHeader = *(BodiesUpdateHeader*)(binary);
+	bodyCount = bodiesHeader.bodyCount;
+
+	char* binaryOffset = binary + sizeof(BodiesUpdateHeader);
+	for (int i = 0; i < bodyCount; ++i)
+    {
+		for (int j=0; j<JointType_Count; j++)
+		{
+			jointPositions[i][(JointType)j][0] = *(float*)(binaryOffset); binaryOffset += 4;
+			jointPositions[i][(JointType)j][1] = *(float*)(binaryOffset); binaryOffset += 4;
+			jointPositions[i][(JointType)j][2] = *(float*)(binaryOffset); binaryOffset += 4;
+		}
+	}
+
 	return true;
 }
