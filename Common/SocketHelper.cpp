@@ -57,14 +57,20 @@ bool SocketHelper::WaitForClient(SOCKET& hServerSocket, SOCKET& hClientSocket, i
       
     // Bind
     if(bind(hServerSocket,(struct sockaddr *)&target , sizeof(target)) == SOCKET_ERROR)
+	{
+		closesocket(hServerSocket);
 		return false;
+	}
       
     // Listen to incoming connections
     listen(hServerSocket, 1);
     int c = sizeof(struct sockaddr_in);
     hClientSocket = accept(hServerSocket, (struct sockaddr *)&client, &c);
     if (hClientSocket == INVALID_SOCKET)
+	{
+		closesocket(hServerSocket);
 		return false;
+	}
     return true;
 }
 

@@ -4,6 +4,7 @@
 #include "Kinect.h"
 #include "KinectAPI.h"
 #include "SocketHelper.h"
+#include <process.h>
 
 using namespace ci;
 using namespace ci::app;
@@ -27,6 +28,17 @@ class CinderSampleApp : public AppNative {
 	Channel8u depthChannel;
 	gl::Texture depthTexture;
 
+	// thread functions for handling sockets
+	void socketThreadFunc();
+	static void socketThreadFuncWrapper(void* o)
+    {
+        static_cast<CinderSampleApp*>(o)->socketThreadFunc();
+    }
+	void startSocketThread()
+    {  
+        _beginthread(&CinderSampleApp::socketThreadFuncWrapper, 0, static_cast<void*>(this));
+    }
+
   public:
 	void setup();
 	void mouseDown( MouseEvent event );	
@@ -34,12 +46,73 @@ class CinderSampleApp : public AppNative {
 	void draw();
 };
 
+void CinderSampleApp::socketThreadFunc()
+{
+	while (true)
+	{
+		// wait for connection
+		if (!mConnected)
+			mConnected = SocketHelper::WaitForClient(mServerSocket, mClientSocket, 3000);
+
+		// receive data
+		if (mConnected)
+		{
+			//Check if it was for closing , and also read the incoming message
+			//recv does not place a null terminator at the end of the string (whilst printf %s assumes there is one).
+			int result = recv(mClientSocket, mRecvBuffer, MAXRECV, 0);
+                 
+			if(result == SOCKET_ERROR || result == 0)
+			{
+				int error_code = WSAGetLastError();
+				if(error_code == WSAECONNRESET || result == 0)
+				{
+					//Somebody disconnected , get his details and print
+					app::console() << "Host disconnected unexpectedly" << endl;
+				}
+				else
+					app::console() << "Recv failed with error code:" << error_code << endl;
+
+				//Close the socket and mark as 0 in list for reuse
+				closesocket(mServerSocket);
+				closesocket(mClientSocket);
+				mConnected = false;
+			}
+			else
+			{
+				// parse received bytes
+				int binaryLength = 0;
+				CommandType command = KinectAPI::BinaryToCommandAndLength(mRecvBuffer, binaryLength);
+				//app::console() << "Recv bytes:" << result << " command: " << command << " binaryLength: " << binaryLength <<endl;
+
+				switch (command)
+				{
+					case BodiesCommand:
+						{
+							KinectAPI::BinaryToBodies(mRecvBuffer, mJointPositions, mBodyCount);
+						}
+						break;
+					case DepthCommand:
+						{
+							// copy data from binary and create texture from it
+							int width, height;
+							KinectAPI::BinaryToDepth(mRecvBuffer, (char*)depthBuffer, width, height);
+						}
+						break;
+				}
+			}
+		}
+	}
+}
+
 void CinderSampleApp::setup()
 {
 	mConnected = false;
 	mRecvBuffer = new char[MAXRECV];
 	depthChannel = Channel(KINECT_DEPTH_WIDTH, KINECT_DEPTH_HEIGHT, KINECT_DEPTH_WIDTH, 1, depthBuffer);
 	mBodyCount = 0;
+
+	// start thread to listen for socket
+	startSocketThread();
 }
 
 void CinderSampleApp::mouseDown( MouseEvent event )
@@ -48,57 +121,6 @@ void CinderSampleApp::mouseDown( MouseEvent event )
 
 void CinderSampleApp::update()
 {
-	// wait for connection
-	if (!mConnected)
-		mConnected = SocketHelper::WaitForClient(mServerSocket, mClientSocket, 3000);
-
-	// receive data
-	if (mConnected)
-	{
-		//Check if it was for closing , and also read the incoming message
-        //recv does not place a null terminator at the end of the string (whilst printf %s assumes there is one).
-        int result = recv(mClientSocket, mRecvBuffer, MAXRECV, 0);
-                 
-        if(result == SOCKET_ERROR)
-        {
-            int error_code = WSAGetLastError();
-            if(error_code == WSAECONNRESET)
-            {
-                //Somebody disconnected , get his details and print
-                app::console() << "Host disconnected unexpectedly" << endl;
-                      
-                //Close the socket and mark as 0 in list for reuse
-                closesocket(mClientSocket);
-				mConnected = false;
-            }
-            else
-				app::console() << "Recv failed with error code:" << error_code << endl;
-        }
-		else if (result != 0)
-		{
-			// parse received bytes
-			int binaryLength = 0;
-			CommandType command = KinectAPI::BinaryToCommandAndLength(mRecvBuffer, binaryLength);
-			//app::console() << "Recv bytes:" << result << " command: " << command << " binaryLength: " << binaryLength <<endl;
-
-			switch (command)
-			{
-				case BodiesCommand:
-					{
-						KinectAPI::BinaryToBodies(mRecvBuffer, mJointPositions, mBodyCount);
-					}
-					break;
-				case DepthCommand:
-					{
-						// copy data from binary and create texture from it
-						int width, height;
-						KinectAPI::BinaryToDepth(mRecvBuffer, (char*)depthBuffer, width, height);
-						depthTexture = gl::Texture(depthChannel);
-					}
-					break;
-			}
-		}
-	}
 }
 
 void CinderSampleApp::draw()
@@ -107,8 +129,8 @@ void CinderSampleApp::draw()
 	gl::clear(Color(0, 0, 0));
 
 	// draw depth
-	if (depthTexture)
-		gl::draw(depthTexture, Rectf(0.0f, 0.0f, (float)app::getWindowWidth(), (float)app::getWindowHeight()));
+	depthTexture = gl::Texture(depthChannel);
+	gl::draw(depthTexture, Rectf(0.0f, 0.0f, (float)app::getWindowWidth(), (float)app::getWindowHeight()));
 
 	// draw bodies
 	for (int i=0; i<mBodyCount; i++)
