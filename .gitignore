@@ -1,5 +1,5 @@
 # Node modules
-Server/node_modules/
+Samples/NodeJSSample/node_modules/
 
 # Compiled Object files
 *.slo
