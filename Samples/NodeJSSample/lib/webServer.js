@@ -17,9 +17,9 @@ function update()
 		io.sockets.emit('updateDepth', { buffer: kinectData.depthBuffer });
 		kinectData.depthReady = false;
 	}
-	if (kinectData.skeletonReady) {
-		io.sockets.emit('updateSkeleton', { skeletonCount: kinectData.skeletonCount, skeletons: kinectData.skeletons } );
-		kinectData.skeletonReady = false;
+	if (kinectData.bodiesReady) {
+		io.sockets.emit('updateBodies', { bodyCount: kinectData.bodyCount, bodyTrackingIds: kinectData.bodyTrackingIds, bodies: kinectData.bodies } );
+		kinectData.bodiesReady = false;
 	}
 }
 

@@ -1,20 +1,32 @@
 var net = require('net');
 
-function parseSkeleton(kinectData, data) {
+function readInt64LEasFloat(buffer, offset) {
+  var low = buffer.readUInt32LE(offset + 4);
+  var n = buffer.readUInt32LE(offset) * 4294967296.0 + low;
+  if (low < 0) n += 4294967296;
+  return n;
+}
+
+function parseBodies(kinectData, data) {
 	var offset = 0;
-	offset += 6;	// skeletons preset
-	kinectData.skeletonCount = data.readUInt16LE(offset); offset += 2;
-	//console.log("parsing skeletons: " + kinectData.skeletonCount);
+
+	// body count
+	kinectData.bodyCount = data.readUInt16LE(offset); offset += 2;
+
+	// tracking Ids
+	for (var s=0; s<6; s++) {
+		kinectData.bodyTrackingIds[s] = readInt64LEasFloat(data, offset); offset += 8;
+	}
 
 	// parse joint data
-	for (var s=0; s<kinectData.skeletonCount; s++) {
+	for (var s=0; s<6; s++) {
 		for (var j=0; j<25; j++) {
-			kinectData.skeletons[s][j].x = data.readFloatLE(offset);	offset += 4;
-			kinectData.skeletons[s][j].y = data.readFloatLE(offset);	offset += 4;
-			kinectData.skeletons[s][j].z = data.readFloatLE(offset);	offset += 4;
+			kinectData.bodies[s][j].x = data.readFloatLE(offset);	offset += 4;
+			kinectData.bodies[s][j].y = data.readFloatLE(offset);	offset += 4;
+			kinectData.bodies[s][j].z = data.readFloatLE(offset);	offset += 4;
 		}
 	}
-	kinectData.skeletonReady = true;
+	kinectData.bodiesReady = true;
 }
 
 function parseDepth(kinectData, data) {
@@ -87,11 +99,11 @@ function start(host, port, kinectData) {
 					// parse command's data
 					dataOffset = parseData(data, dataOffset);
 
-					// if we are done receiving the buffer, go ahead and parse skeleton or depth
+					// if we are done receiving the buffer, go ahead and parse bodies or depth
 					if (parseDataOffset >= parseDataLength-1) {
 						//console.log("parseDataOffset: " + parseDataOffset + " parseDataLength: " + parseDataLength);
 						if (parseCommandId == 0)
-							parseSkeleton(kinectData, parseBuffer);
+							parseBodies(kinectData, parseBuffer);
 						else if (parseCommandId == 1)
 							parseDepth(kinectData, parseBuffer);
 
