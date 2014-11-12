@@ -42,4 +42,10 @@ KinectTransport/ipch
 Samples/CinderSample/vc2012/Debug
 Samples/CinderSample/vc2012/Release
 
+# Unity generated
+Samples/UnitySample/Temp
+Samples/UnitySample/Obj
+Samples/UnitySample/UnityGenerated
+Samples/UnitySample/Library
+
 # assets

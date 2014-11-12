@@ -4,8 +4,8 @@
 struct BodiesUpdateHeader {
 	char command;
 	unsigned long dataLength;
-	char bodiesPresent[6];
 	unsigned short bodyCount;
+	UINT64 trackingIds[6];
 };
 #pragma pack(pop)
 
@@ -25,7 +25,9 @@ int KinectAPI::BodiesToBinary(IBody** ppBodies, char* binary)
 			{
 				if (bTracked)
 				{
-					header.bodiesPresent[i] = 1;
+					UINT64 trackingId = 0;
+					if ( SUCCEEDED(pBody->get_TrackingId(&trackingId)) )
+						header.trackingIds[i] = trackingId;
 					header.bodyCount++;
 				}
 			}
@@ -34,27 +36,27 @@ int KinectAPI::BodiesToBinary(IBody** ppBodies, char* binary)
 
 	// write header
 	header.command = 0;
-	header.dataLength = header.bodyCount * JointType_Count * 3 * 4 + 8;
+	header.dataLength = 6 * JointType_Count * 3 * 4 + 8;
 	memcpy(binary, &header, sizeof(BodiesUpdateHeader));
 		
 	// write body joints
 	int byteOffset = sizeof(BodiesUpdateHeader);
 	for (int i = 0; i < 6; ++i)
     {
-		// only send body data if this body is present
-		if (header.bodiesPresent[i] == 1)
+		Joint joints[JointType_Count]; 
+		HRESULT hr = ppBodies[i]->GetJoints(_countof(joints), joints);
+		if (SUCCEEDED(hr))
 		{
-			Joint joints[JointType_Count]; 
-			HRESULT hr = ppBodies[i]->GetJoints(_countof(joints), joints);
-			if (SUCCEEDED(hr))
+			for (int j = 0; j < _countof(joints); ++j)
 			{
-				for (int j = 0; j < _countof(joints); ++j)
-				{
-					memcpy(&(binary[byteOffset]), &joints[j].Position.X, sizeof(float)); byteOffset += 4;
-					memcpy(&(binary[byteOffset]), &joints[j].Position.Y, sizeof(float)); byteOffset += 4;
-					memcpy(&(binary[byteOffset]), &joints[j].Position.Z, sizeof(float)); byteOffset += 4;
-				}
+				memcpy(&(binary[byteOffset]), &joints[j].Position.X, sizeof(float)); byteOffset += 4;
+				memcpy(&(binary[byteOffset]), &joints[j].Position.Y, sizeof(float)); byteOffset += 4;
+				memcpy(&(binary[byteOffset]), &joints[j].Position.Z, sizeof(float)); byteOffset += 4;
 			}
+		}
+		else
+		{
+			byteOffset += 4 * 3 * JointType_Count;
 		}
 	}
 	return byteOffset;
@@ -148,14 +150,17 @@ bool KinectAPI::BinaryToDepth(char* binary, char* depthBuffer, int& width, int& 
 	return true;
 }
 
-bool KinectAPI::BinaryToBodies(char* binary, std::map< JointType, std::array<float, 3> > *jointPositions, int& bodyCount)
+bool KinectAPI::BinaryToBodies(char* binary, UINT64* trackingIds, std::map< JointType, std::array<float, 3> > *jointPositions, int& bodyCount)
 {
 	// parse out number of bodies and joint positions from binary data
 	BodiesUpdateHeader bodiesHeader = *(BodiesUpdateHeader*)(binary);
 	bodyCount = bodiesHeader.bodyCount;
 
+	for (int i=0; i < 6; i++)
+		trackingIds[i] = bodiesHeader.trackingIds[i];
+
 	char* binaryOffset = binary + sizeof(BodiesUpdateHeader);
-	for (int i = 0; i < bodyCount; ++i)
+	for (int i = 0; i < 6; ++i)
     {
 		for (int j=0; j<JointType_Count; j++)
 		{

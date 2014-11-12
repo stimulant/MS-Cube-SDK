@@ -22,6 +22,7 @@ class CinderSampleApp : public AppNative {
 	char* mRecvBuffer;
 
 	int mBodyCount;
+	ULONG64 mTrackingIds[6];
 	std::map< JointType, std::array<float, 3> > mJointPositions[6];
 
 	uint8_t depthBuffer[KINECT_DEPTH_WIDTH * KINECT_DEPTH_HEIGHT];
@@ -88,7 +89,7 @@ void CinderSampleApp::socketThreadFunc()
 				{
 					case BodiesCommand:
 						{
-							KinectAPI::BinaryToBodies(mRecvBuffer, mJointPositions, mBodyCount);
+							KinectAPI::BinaryToBodies(mRecvBuffer, mTrackingIds, mJointPositions, mBodyCount);
 						}
 						break;
 					case DepthCommand:
@@ -133,13 +134,16 @@ void CinderSampleApp::draw()
 	gl::draw(depthTexture, Rectf(0.0f, 0.0f, (float)app::getWindowWidth(), (float)app::getWindowHeight()));
 
 	// draw bodies
-	for (int i=0; i<mBodyCount; i++)
+	for (int i=0; i<6; i++)
 	{
-		gl::color(ColorA::white());
-		for (int j=0; j<JointType_Count; j++)
-			gl::drawStrokedCircle(Vec2f(mJointPositions[i][(JointType)j][0], 1.0f - mJointPositions[i][(JointType)j][1]) * 
-				Vec2f((float)app::getWindowWidth()/2.0f, (float)app::getWindowHeight()/2.0f) + 
-				Vec2f((float)app::getWindowWidth()/2.0f, 0.0f), 5.0f);
+		if (mTrackingIds[i] != 0)
+		{
+			gl::color(ColorA::white());
+			for (int j=0; j<JointType_Count; j++)
+				gl::drawStrokedCircle(Vec2f(mJointPositions[i][(JointType)j][0], 1.0f - mJointPositions[i][(JointType)j][1]) * 
+					Vec2f((float)app::getWindowWidth()/2.0f, (float)app::getWindowHeight()/2.0f) + 
+					Vec2f((float)app::getWindowWidth()/2.0f, 0.0f), 5.0f);
+		}
 	}
 }
 
