@@ -23,7 +23,7 @@ Header that is present no matter how many bodies are present.
 | Byte   | Description
 |--------|----------------------------
 |0-8     | Timestamp
-|9-14    | Byte (bool) to indicate whether each body is present
+|9-56    | Unsigned 64 bit integer ID for each body that is tracked, 0 if this body is not tracked.
 
 After this there is a repeating section for each body that indicates positions of all joints:
 
