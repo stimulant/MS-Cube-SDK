@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class DepthSourceView : MonoBehaviour
+public class DepthView : MonoBehaviour
 {
 	public GameObject KinectManager;
 	
@@ -20,11 +20,13 @@ public class DepthSourceView : MonoBehaviour
 	void Start()
 	{
 		// Create mesh
+        Debug.Log("DepthView: Start");
 		CreateMesh(_DepthWidth / _DownsampleSize, _DepthHeight / _DownsampleSize);
 	}
 	
 	void CreateMesh(int width, int height)
 	{
+        Debug.Log("DepthView: Start creating mesh...");
 		_Mesh = new Mesh();
 		GetComponent<MeshFilter>().mesh = _Mesh;
 		
@@ -64,6 +66,7 @@ public class DepthSourceView : MonoBehaviour
 		_Mesh.uv = _UV;
 		_Mesh.triangles = _Triangles;
 		_Mesh.RecalculateNormals();
+        Debug.Log("DepthView: Finish creating mesh");
 	}
 	
 	void Update()
@@ -75,6 +78,7 @@ public class DepthSourceView : MonoBehaviour
 		if (kinectAPI == null)
 			return;
 		
+        /*
 		float yVal = Input.GetAxis("Horizontal");
 		float xVal = -Input.GetAxis("Vertical");
 		
@@ -85,6 +89,7 @@ public class DepthSourceView : MonoBehaviour
 			Space.Self);
 
 		RefreshData(kinectAPI.DepthData, _DepthWidth, _DepthHeight);
+         * */
 	}
 	
 	private void RefreshData(byte[] depthData, int colorWidth, int colorHeight)

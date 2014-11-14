@@ -22,6 +22,7 @@ public class KinectAPI : MonoBehaviour {
 	TcpClient client;
 	bool connected = false;
 	Byte[] bytes;
+    int command;
 	
 	// Use this for initialization
 	void Start () 
@@ -40,6 +41,8 @@ public class KinectAPI : MonoBehaviour {
 		
 		// Buffer for reading data
 		bytes = new Byte[250000];
+
+        command = -1;
 	}
 	
 	// Update is called once per frame
@@ -73,7 +76,7 @@ public class KinectAPI : MonoBehaviour {
 					{
 						int command = (int)reader.ReadByte();
 						UInt32 length = reader.ReadUInt32();
-						//Debug.Log("KinectAPI: Command: " + command + " length:" + length);
+                        Debug.Log("KinectAPI: Command: " + command + " length:" + length + " bytes read: " + bytesRead);
 
                         // parse commands
 						if (command == 0)
