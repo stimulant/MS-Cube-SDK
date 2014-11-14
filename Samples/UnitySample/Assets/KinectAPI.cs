@@ -16,6 +16,7 @@ public class KinectAPI : MonoBehaviour {
 	public int BodyCount = 0;
 	public UInt64[] TrackingIds = new UInt64[6]; 
 	public IList<KinectBody> Bodies = new List<KinectBody>();
+	public byte[] DepthData = new byte[512 * 424];
 
 	TcpListener server=null;
 	TcpClient client;
@@ -74,11 +75,11 @@ public class KinectAPI : MonoBehaviour {
 						UInt32 length = reader.ReadUInt32();
 						//Debug.Log("KinectAPI: Command: " + command + " length:" + length);
 
+                        // parse commands
 						if (command == 0)
 						{
+                            // parse bodies
 							Bodies.Clear();
-
-							// parse bodies
 							BodyCount = reader.ReadUInt16();
 							for (int i=0; i<6; i++)
 								TrackingIds[i] = reader.ReadUInt64();
@@ -100,6 +101,10 @@ public class KinectAPI : MonoBehaviour {
 						else if (command == 1)
 						{
 							// parse depth
+                            Debug.Log("KinectAPI: getting depth");
+                            int width = reader.ReadUInt16();
+                            int height = reader.ReadUInt16();
+                            DepthData = reader.ReadBytes(512 * 424);
 						}
 					}
 				}

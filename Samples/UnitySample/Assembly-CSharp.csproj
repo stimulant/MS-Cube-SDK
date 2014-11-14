@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Assets\BodyView.cs" />
+     <Compile Include="Assets\DepthView.cs" />
      <Compile Include="Assets\KinectAPI.cs" />
      <Compile Include="Assets\TestScript.cs" />
   </ItemGroup>
