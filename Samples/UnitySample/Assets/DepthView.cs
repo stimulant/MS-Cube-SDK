@@ -71,7 +71,7 @@ public class DepthView : MonoBehaviour
 	
 	void Update()
 	{
-		Debug.Log("DepthView: Update");
+		//Debug.Log("DepthView: Update");
 		if (KinectManager == null)
 			return;
 		KinectAPI kinectAPI = KinectManager.GetComponent<KinectAPI>();

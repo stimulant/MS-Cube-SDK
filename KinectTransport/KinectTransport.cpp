@@ -224,6 +224,12 @@ bool LoadFromRegistry()
 	for (int i=0; i<4; i++)
 	{
 		std::string keyName;
+
+		keyName = "HostEnabled" + i;
+		if (RegistryHelper::GetBoolRegValue(hKey, keyName.c_str(), bValue, true))
+			fHostEnabled[i] = bValue;
+		else
+			return false;
 		
 		keyName = "DestinationHost" + i;
 		if (RegistryHelper::GetStringRegValue(hKey, keyName.c_str(), strValue, "127.0.0.1"))
@@ -266,11 +272,15 @@ bool SaveToRegistry()
 	{
 		std::string keyName;
 
+		keyName = "HostEnabled" + i;
+		DWORD dValue = fHostEnabled[i] ? 1 : 0;
+		lRes = RegSetValueEx(hKey, keyName.c_str(), 0, REG_DWORD, (unsigned char*)&dValue, sizeof(DWORD));
+
 		keyName = "DestinationHost" + i;
 		lRes = RegSetValueEx(hKey, keyName.c_str(), 0, REG_SZ, (unsigned char*)strDestinationHost[i].c_str(), strDestinationHost[i].length() * sizeof(TCHAR));
 
 		keyName = "SendSkeletonData" + i;
-		DWORD dValue = fSendBodiesData[i] ? 1 : 0;
+		dValue = fSendBodiesData[i] ? 1 : 0;
 		lRes = RegSetValueEx(hKey, keyName.c_str(), 0, REG_DWORD, (unsigned char*)&dValue, sizeof(DWORD));
 
 		keyName = "SendDepthData" + i;

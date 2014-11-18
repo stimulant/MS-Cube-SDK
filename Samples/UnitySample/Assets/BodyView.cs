@@ -42,7 +42,7 @@ public class BodyView : MonoBehaviour
 	
 	void Update () 
 	{
-        Debug.Log("BodyView: Update");
+        //Debug.Log("BodyView: Update");
 		if (KinectManager == null)
 			return;
 		KinectAPI kinectAPI = KinectManager.GetComponent<KinectAPI>();

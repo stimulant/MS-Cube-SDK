@@ -23,6 +23,8 @@ public class KinectAPI : MonoBehaviour {
 	bool connected = false;
 	Byte[] bytes;
     int command;
+    UInt32 commandLength;
+    MemoryStream commandStream;
 	
 	// Use this for initialization
 	void Start () 
@@ -68,48 +70,67 @@ public class KinectAPI : MonoBehaviour {
 			int bytesRead = stream.Read(bytes, 0, bytes.Length);
 			if (bytesRead != 0)
 			{
+                Debug.Log("Bytes read: " + bytesRead);
 				// parse out command and length
 				using (MemoryStream ms = new MemoryStream(bytes))
 				{
-					/*you can change Encoding.Default if bytes is in other Encoding format!*/
-					using (BinaryReader reader = new BinaryReader(ms, Encoding.Default))
-					{
-						int command = (int)reader.ReadByte();
-						UInt32 length = reader.ReadUInt32();
-                        Debug.Log("KinectAPI: Command: " + command + " length:" + length + " bytes read: " + bytesRead);
+                    while (ms.CanRead)
+                    {
+                        // if we don't have a command, parse one out
+                        if (command == -1)
+                        {
+                            using (BinaryReader reader = new BinaryReader(ms, Encoding.Default))
+                            {
+                                command = (int)reader.ReadByte();
+                                commandLength = reader.ReadUInt32();
+                                Debug.Log("KinectAPI: Command: " + command + " length:" + commandLength + " bytes read: " + bytesRead);
+                                commandStream = new MemoryStream((int)commandLength);
+                            }
+                        }
 
-                        // parse commands
-						if (command == 0)
-						{
-                            // parse bodies
-							Bodies.Clear();
-							BodyCount = reader.ReadUInt16();
-							for (int i=0; i<6; i++)
-								TrackingIds[i] = reader.ReadUInt64();
+                        // keep writing bytes to our command stream until we have the entire command
+                        int writeLength = Math.Min((int)bytesRead, (int)commandLength);
+                        commandStream.Write(ms.GetBuffer(), 0, writeLength); 
 
-							for (int b=0; b<6; b++)
-							{
-                                KinectBody body = new KinectBody();
-                                for (int j = 0; j < 25; j++)
+                        if (commandStream.Length >= commandLength)
+                        {
+                            /*you can change Encoding.Default if bytes is in other Encoding format!*/
+                            using (BinaryReader reader = new BinaryReader(commandStream, Encoding.Default))
+                            {
+                                // parse commands
+                                if (command == 0)
                                 {
-                                    body.Joints.Add(
-                                        new Vector3(
-                                            reader.ReadSingle(),
-                                            reader.ReadSingle(),
-                                            reader.ReadSingle()));
+                                    // parse bodies
+                                    Bodies.Clear();
+                                    BodyCount = reader.ReadUInt16();
+                                    for (int i = 0; i < 6; i++)
+                                        TrackingIds[i] = reader.ReadUInt64();
+
+                                    for (int b = 0; b < 6; b++)
+                                    {
+                                        KinectBody body = new KinectBody();
+                                        for (int j = 0; j < 25; j++)
+                                        {
+                                            body.Joints.Add(
+                                                new Vector3(
+                                                    reader.ReadSingle(),
+                                                    reader.ReadSingle(),
+                                                    reader.ReadSingle()));
+                                        }
+                                        Bodies.Add(body);
+                                    }
                                 }
-                                Bodies.Add(body);
-							}
-						}
-						else if (command == 1)
-						{
-							// parse depth
-                            Debug.Log("KinectAPI: getting depth");
-                            int width = reader.ReadUInt16();
-                            int height = reader.ReadUInt16();
-                            DepthData = reader.ReadBytes(512 * 424);
-						}
-					}
+                                else if (command == 1)
+                                {
+                                    // parse depth
+                                    Debug.Log("KinectAPI: getting depth");
+                                    int width = reader.ReadUInt16();
+                                    int height = reader.ReadUInt16();
+                                    DepthData = reader.ReadBytes(512 * 424);
+                                }
+                            }
+                        }
+                    }
 				}
 			}
 			else

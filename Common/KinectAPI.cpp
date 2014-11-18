@@ -44,8 +44,7 @@ int KinectAPI::BodiesToBinary(IBody** ppBodies, char* binary)
 	for (int i = 0; i < 6; ++i)
     {
 		Joint joints[JointType_Count]; 
-		HRESULT hr = ppBodies[i]->GetJoints(_countof(joints), joints);
-		if (SUCCEEDED(hr))
+		if (ppBodies[i] != NULL && SUCCEEDED(ppBodies[i]->GetJoints(_countof(joints), joints)))
 		{
 			for (int j = 0; j < _countof(joints); ++j)
 			{
