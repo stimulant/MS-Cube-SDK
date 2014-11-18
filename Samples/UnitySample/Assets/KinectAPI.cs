@@ -77,7 +77,7 @@ public class KinectAPI : MonoBehaviour
                     {
                         int command = (int)reader.ReadByte();
                         UInt32 length = reader.ReadUInt32();
-                        Debug.Log("KinectAPI: Command: " + command + " length:" + length + " bytes read: " + bytesRead);
+                        //Debug.Log("KinectAPI: Command: " + command + " length:" + length + " bytes read: " + bytesRead);
 
                         // parse commands
                         if (command == 0)
@@ -105,7 +105,7 @@ public class KinectAPI : MonoBehaviour
                         else if (command == 1)
                         {
                             // parse depth
-                            Debug.Log("KinectAPI: getting depth");
+                            //Debug.Log("KinectAPI: getting depth");
                             int width = reader.ReadUInt16();
                             int height = reader.ReadUInt16();
                             DepthData = reader.ReadBytes(512 * 424);

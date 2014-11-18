@@ -69,11 +69,12 @@ public class BodyView : MonoBehaviour
 		
 		for (int i=0; i<6; i++)
 		{
-            if (kinectAPI.TrackingIds[i] == 0)
-                continue;
-			if(!_Bodies.ContainsKey(kinectAPI.TrackingIds[i]))
-				_Bodies[kinectAPI.TrackingIds[i]] = CreateBodyObject(kinectAPI.TrackingIds[i]);
-			RefreshBodyObject(kinectAPI.Bodies[i], _Bodies[kinectAPI.TrackingIds[i]]);
+            if (kinectAPI.TrackingIds[i] != 0)
+            {
+                if (!_Bodies.ContainsKey(kinectAPI.TrackingIds[i]))
+                    _Bodies[kinectAPI.TrackingIds[i]] = CreateBodyObject(kinectAPI.TrackingIds[i]);
+                RefreshBodyObject(kinectAPI.Bodies[i], _Bodies[kinectAPI.TrackingIds[i]]);
+            }
 		}
 	}
 	
@@ -111,7 +112,7 @@ public class BodyView : MonoBehaviour
 			
 			Transform jointObj = bodyObject.transform.FindChild("jt" + j);
             //Debug.Log("BodyView: RefreshBodyObject: " + sourceJoint);
-			jointObj.localPosition = sourceJoint * 10.0f;
+            jointObj.localPosition = sourceJoint * 10.0f;
 			
 			LineRenderer lr = jointObj.GetComponent<LineRenderer>();
 			if(targetJoint.HasValue)

@@ -55,7 +55,13 @@ int KinectAPI::BodiesToBinary(IBody** ppBodies, char* binary)
 		}
 		else
 		{
-			byteOffset += 4 * 3 * JointType_Count;
+			float temp = 0.0f;
+			for (int j = 0; j < JointType_Count; ++j)
+			{
+				memcpy(&(binary[byteOffset]), &temp, sizeof(float)); byteOffset += 4;
+				memcpy(&(binary[byteOffset]), &temp, sizeof(float)); byteOffset += 4;
+				memcpy(&(binary[byteOffset]), &temp, sizeof(float)); byteOffset += 4;
+			}
 		}
 	}
 	return byteOffset;
