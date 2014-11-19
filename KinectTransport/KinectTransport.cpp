@@ -104,6 +104,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 
 unsigned int __stdcall KinectThread(void* data)
 {
+	int bodyCount = 0;
+	ULONG64 trackingIds[6] = {0};
+	static std::map< JointType, std::array<float, 3> > jointPositions[6];
+
 	while (!fShouldDisconnectKinect)
 	{
 		// try to connect if we aren't connected to all valid
@@ -145,12 +149,12 @@ unsigned int __stdcall KinectThread(void* data)
 		// retrieve and send body data
 		if (getBodies)
 		{
-			IBody* ppBodies[BODY_COUNT] = {0};
-			if (pKinectData->GetKinectBodies(ppBodies))
+			bodyCount = 0;
+			if (pKinectData->GetKinectBodies(trackingIds, jointPositions, bodyCount))
 			{
 				// turn bodies into a binary frame
 				char binary[1208];
-				int binarySize = KinectAPI::BodiesToBinary(ppBodies, binary);
+				int binarySize = KinectAPI::BodiesToBinary(trackingIds, jointPositions, bodyCount, binary);
 
 				// send data out the sockets
 				for (int i=0; i<4; i++)
@@ -160,13 +164,6 @@ unsigned int __stdcall KinectThread(void* data)
 						if (send(hSocket[i], binary, binarySize, 0) == -1)
 							fSocketConnected[i] = false;
 					}
-				}
-
-				// release bodies data
-				for (int i = 0; i < _countof(ppBodies); ++i)
-				{
-					if (ppBodies[i] != NULL)
-						ppBodies[i]->Release();
 				}
 			}
 		}

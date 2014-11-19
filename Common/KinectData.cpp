@@ -43,7 +43,7 @@ KinectData::~KinectData(void)
 		mKinectSensor->Close();
 }
 
-bool KinectData::GetKinectBodies(IBody** ppBodies)
+bool KinectData::GetKinectBodies(UINT64* trackingIds, std::map< JointType, std::array<float, 3> > *jointPositions, int bodyCount)
 {
 	DWORD dwResult = WaitForSingleObjectEx(reinterpret_cast<HANDLE>(mBodyFrameEvent), 0, FALSE);
     if (WAIT_OBJECT_0 != dwResult)
@@ -59,7 +59,51 @@ bool KinectData::GetKinectBodies(IBody** ppBodies)
         hr = pBodyFrame->get_RelativeTime(&nTime);
 
         if (SUCCEEDED(hr))
+		{
+			IBody* ppBodies[BODY_COUNT] = {0};
             hr = pBodyFrame->GetAndRefreshBodyData(BODY_COUNT, ppBodies);
+			
+			for (int i = 0; i < BODY_COUNT; ++i)
+			{
+				IBody* pBody = ppBodies[i];
+				if (pBody)
+				{
+					BOOLEAN bTracked = false;
+					if ( SUCCEEDED(pBody->get_IsTracked(&bTracked)) )
+					{
+						if (bTracked)
+						{
+							UINT64 trackingId = 0;
+							if ( SUCCEEDED(pBody->get_TrackingId(&trackingId)) )
+							{
+								// get tracking ids
+								trackingIds[i] = trackingId;
+								bodyCount++;
+
+								// get body joints
+								Joint joints[JointType_Count]; 
+								if (SUCCEEDED(pBody->GetJoints(_countof(joints), joints)))
+								{
+									for (int j = 0; j < _countof(joints); ++j)
+									{
+										jointPositions[i][(JointType)j][0] = joints[j].Position.X;
+										jointPositions[i][(JointType)j][1] = joints[j].Position.Y;
+										jointPositions[i][(JointType)j][2] = joints[j].Position.Z;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+
+			// release bodies data
+			for (int i = 0; i < _countof(ppBodies); ++i)
+			{
+				if (ppBodies[i] != NULL)
+					ppBodies[i]->Release();
+			}
+		}
     }
 	
 	if (pBodyFrame != NULL)

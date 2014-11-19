@@ -20,49 +20,30 @@ struct BodiesUpdateHeader {
 };
 #pragma pack(pop)
 
-int KinectAPI::BodiesToBinary(IBody** ppBodies, char* binary)
+int KinectAPI::BodiesToBinary(UINT64* trackingIds, std::map< JointType, std::array<float, 3> > *jointPositions, int bodyCount, char* binary)
 {
 	BodiesUpdateHeader header;
 	memset(&header, 0, sizeof(BodiesUpdateHeader));
+	header.bodyCount = bodyCount;	
 
 	// first get bodies presence
 	int byteOffset = sizeof(BodiesUpdateHeader);
 	for (int i = 0; i < BODY_COUNT; ++i)
     {
-		bool jointsWritten = false;
-        IBody* pBody = ppBodies[i];
-		if (pBody)
-        {
-			BOOLEAN bTracked = false;
-			if ( SUCCEEDED(pBody->get_IsTracked(&bTracked)) )
+		header.trackingIds[i] = trackingIds[i];
+		if (trackingIds[i] != 0)
+		{
+			for (int j = 0; j < JointType_Count; ++j)
 			{
-				if (bTracked)
-				{
-					UINT64 trackingId = 0;
-					if ( SUCCEEDED(pBody->get_TrackingId(&trackingId)) )
-					{
-						// write tracking ids
-						header.trackingIds[i] = trackingId;
-						header.bodyCount++;
-
-						// write body joints
-						Joint joints[JointType_Count]; 
-						if (SUCCEEDED(pBody->GetJoints(_countof(joints), joints)))
-						{
-							for (int j = 0; j < _countof(joints); ++j)
-							{
-								memcpy(&(binary[byteOffset]), &joints[j].Position.X, sizeof(float)); byteOffset += 4;
-								memcpy(&(binary[byteOffset]), &joints[j].Position.Y, sizeof(float)); byteOffset += 4;
-								memcpy(&(binary[byteOffset]), &joints[j].Position.Z, sizeof(float)); byteOffset += 4;
-							}
-							jointsWritten = true;
-						}
-					}
-				}
+				float x = jointPositions[i][(JointType)j].at(0);
+				float y = jointPositions[i][(JointType)j].at(1);
+				float z = jointPositions[i][(JointType)j].at(2);
+				memcpy(&(binary[byteOffset]), &x, sizeof(float)); byteOffset += 4;
+				memcpy(&(binary[byteOffset]), &y, sizeof(float)); byteOffset += 4;
+				memcpy(&(binary[byteOffset]), &z, sizeof(float)); byteOffset += 4;
 			}
 		}
-
-		if (!jointsWritten)
+		else
 		{
 			// right blank space
 			float temp = 0.0f;

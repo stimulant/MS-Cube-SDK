@@ -1,6 +1,8 @@
 #pragma once
 #include "Kinect.h"
 #include <string>
+#include <map>
+#include <array>
 
 class KinectData
 {
@@ -18,6 +20,6 @@ public:
 	~KinectData();
 
 	bool GetKinectDepth(IDepthFrame** ppDepthFrame, int& nWidth, int& nHeight, UINT16 *&pBuffer, USHORT& nMinDepth, USHORT& nMaxDepth);
-	bool GetKinectBodies(IBody** ppBodies);
+	bool GetKinectBodies(UINT64* trackingIds, std::map< JointType, std::array<float, 3> > *jointPositions, int bodyCount);
 };
 
