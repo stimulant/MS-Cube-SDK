@@ -1,5 +1,16 @@
 #include "KinectAPI.h"
 
+void DebugOutput(const char* szFormat, ...)
+{
+    char szBuff[1024];
+    va_list arg;
+    va_start(arg, szFormat);
+    _vsnprintf(szBuff, sizeof(szBuff), szFormat, arg);
+    va_end(arg);
+
+    OutputDebugString(szBuff);
+}
+
 #pragma pack(push, 1) // exact fit - no padding
 struct BodiesUpdateHeader {
 	char command;
@@ -15,8 +26,10 @@ int KinectAPI::BodiesToBinary(IBody** ppBodies, char* binary)
 	memset(&header, 0, sizeof(BodiesUpdateHeader));
 
 	// first get bodies presence
+	int byteOffset = sizeof(BodiesUpdateHeader);
 	for (int i = 0; i < BODY_COUNT; ++i)
     {
+		bool jointsWritten = false;
         IBody* pBody = ppBodies[i];
 		if (pBody)
         {
@@ -27,34 +40,31 @@ int KinectAPI::BodiesToBinary(IBody** ppBodies, char* binary)
 				{
 					UINT64 trackingId = 0;
 					if ( SUCCEEDED(pBody->get_TrackingId(&trackingId)) )
+					{
+						// write tracking ids
 						header.trackingIds[i] = trackingId;
-					header.bodyCount++;
+						header.bodyCount++;
+
+						// write body joints
+						Joint joints[JointType_Count]; 
+						if (SUCCEEDED(pBody->GetJoints(_countof(joints), joints)))
+						{
+							for (int j = 0; j < _countof(joints); ++j)
+							{
+								memcpy(&(binary[byteOffset]), &joints[j].Position.X, sizeof(float)); byteOffset += 4;
+								memcpy(&(binary[byteOffset]), &joints[j].Position.Y, sizeof(float)); byteOffset += 4;
+								memcpy(&(binary[byteOffset]), &joints[j].Position.Z, sizeof(float)); byteOffset += 4;
+							}
+							jointsWritten = true;
+						}
+					}
 				}
 			}
 		}
-	}
 
-	// write header
-	header.command = 0;
-	header.dataLength = 6 * JointType_Count * 3 * 4 + 8;
-	memcpy(binary, &header, sizeof(BodiesUpdateHeader));
-		
-	// write body joints
-	int byteOffset = sizeof(BodiesUpdateHeader);
-	for (int i = 0; i < 6; ++i)
-    {
-		Joint joints[JointType_Count]; 
-		if (ppBodies[i] != NULL && SUCCEEDED(ppBodies[i]->GetJoints(_countof(joints), joints)))
+		if (!jointsWritten)
 		{
-			for (int j = 0; j < _countof(joints); ++j)
-			{
-				memcpy(&(binary[byteOffset]), &joints[j].Position.X, sizeof(float)); byteOffset += 4;
-				memcpy(&(binary[byteOffset]), &joints[j].Position.Y, sizeof(float)); byteOffset += 4;
-				memcpy(&(binary[byteOffset]), &joints[j].Position.Z, sizeof(float)); byteOffset += 4;
-			}
-		}
-		else
-		{
+			// right blank space
 			float temp = 0.0f;
 			for (int j = 0; j < JointType_Count; ++j)
 			{
@@ -64,6 +74,13 @@ int KinectAPI::BodiesToBinary(IBody** ppBodies, char* binary)
 			}
 		}
 	}
+
+	// write header
+	header.command = 0;
+	header.dataLength = 6 * JointType_Count * 3 * 4 + 8;
+	memcpy(binary, &header, sizeof(BodiesUpdateHeader));
+	DebugOutput("%d\n", header.bodyCount);
+		
 	return byteOffset;
 }
 
