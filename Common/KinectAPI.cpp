@@ -1,5 +1,6 @@
 #include "KinectAPI.h"
 
+/*
 void DebugOutput(const char* szFormat, ...)
 {
     char szBuff[1024];
@@ -9,7 +10,7 @@ void DebugOutput(const char* szFormat, ...)
     va_end(arg);
 
     OutputDebugString(szBuff);
-}
+}*/
 
 #pragma pack(push, 1) // exact fit - no padding
 struct BodiesUpdateHeader {
@@ -60,7 +61,7 @@ int KinectAPI::BodiesToBinary(UINT64* trackingIds, std::map< JointType, std::arr
 	header.command = 0;
 	header.dataLength = 6 * JointType_Count * 3 * 4 + 8;
 	memcpy(binary, &header, sizeof(BodiesUpdateHeader));
-	DebugOutput("%d\n", header.bodyCount);
+	//DebugOutput("%d\n", header.bodyCount);
 		
 	return byteOffset;
 }
