@@ -22,3 +22,7 @@ Still a work in progress (currently only receives and displays body data).  To r
 # Further Documentation
 * [SDK Architecture](docs/sdk_architecture.md)
 * [API Documentation](docs/api_documentation.md)
+
+* Hackathon Presentation on the SDK
+* [Presentation as Powerpoint](docs/presentation/CubeSDK.pptx)
+* [Presentation as PDF](docs/presentation/CubeSDK.pdf)
