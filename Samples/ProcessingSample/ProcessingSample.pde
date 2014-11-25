@@ -7,70 +7,103 @@ int val = 0;
 byte[] recvBytes = new byte[247815];
 
 void setup() {
-  size(800, 800);
+  size(512, 424);
   // Starts a myServer on port 3000
   myServer = new Server(this, 3000); 
 }
 
-void draw() {
+void parseBodies(ByteBuffer buffer) {
   background(0);
+  
+  // parse bodies        
+  int bodyCount = (int)(byteBuffer.getShort() & 0xffff);
+  //println("parse bodies: " + bodyCount);
+  long[] trackingIds = new long[6];
+  for (int i=0; i<6; i++) {
+    trackingIds[i] = byteBuffer.getLong();
+  } 
+   
+  // parse out joints
+  for (int i=0; i<6; i++) {
+    for (int j=0; j<25; j++) {
+      
+      float x = byteBuffer.getFloat(); 
+      float y = byteBuffer.getFloat();
+      float z = byteBuffer.getFloat();
+      
+      // draw joint
+      if (trackingIds[i] != 0) {
+        ellipse(x * width/2 +width/2.0, 
+              (1.0-y) * height/2, 
+              20, 20);
+      }
+    }
+  }
+}
+
+void parseDepth(ByteBuffer buffer) {
+  background(0);
+  
+  // parse depth
+  int depthWidth = (int)(byteBuffer.getShort() & 0xffff);
+  int depthHeight = (int)(byteBuffer.getShort() & 0xffff);
+  //println("parse depth: " + depthWidth + ", " + depthHeight);
+  for (int y=0; y<depthHeight; y++) {
+    for (int x=0; x<depthWidth; x++) {
+      byte depth = byteBuffer.get();
+      set(x, y, color(depth));
+    }
+  }
+}
+
+int command = -1;
+int commandLength = 0;
+ByteBuffer byteBuffer;
+
+void draw() {
   
   if (myClient != null && myClient.available() > 0) {
     
     // Read in the bytes
     int byteCount = myClient.readBytes(recvBytes); 
     if (byteCount > 0 ) {
-      
-        println("start");
-        int command = (int)(recvBytes[0] & 0xFF);
-        int commandLength = ((0xFF & recvBytes[1]) << 0) | ((0xFF & recvBytes[2]) << 8) |
-            ((0xFF & recvBytes[3]) << 16) | ((0xFF & recvBytes[4]) << 24);
-        println("command: " + command + " commandLength: " + commandLength);
+        //println("byteCount: " + byteCount);
         
-        if (commandLength <= 0 || commandLength > byteCount ||
-            (command != 0 && command != 1))
-           return; 
+        int byteOffset = 0;
+        while(byteCount > 0) {
         
-        ByteBuffer byteBuffer = ByteBuffer.allocate(commandLength);
-        byteBuffer.put(recvBytes, 4, commandLength);
-        byteBuffer.flip();
-        println("byteBuffer: " + byteBuffer.limit());
-        
-        if (command == 0) {
-          // parse bodies        
-          int bodyCount = (int)(byteBuffer.getShort() & 0xffff);
-          println("parse bodies: " + bodyCount);
-          long[] trackingIds = new long[6];
-          for (int i=0; i<6; i++) {
-            trackingIds[i] = byteBuffer.getLong();
-          } 
-          println("parse trackingIds: " + trackingIds[0] + " " + trackingIds[1] + " " + trackingIds[2] + " "
-           + trackingIds[3] + " " + trackingIds[4] + " " + trackingIds[5]);
-           
-          // parse out joints
-          for (int i=0; i<6; i++) {
-            for (int j=0; j<25; j++) {
-              
-              float x = byteBuffer.getFloat(); 
-              float y = byteBuffer.getFloat();
-              float z = byteBuffer.getFloat();
-              //if (x != 0.0)
-                //println( "x: " + x );
-              
-              // draw joint
-              if (trackingIds[i] != 0) {
-                ellipse(x * width/2 +width/2.0, 
-                      (1.0-y) * height/2, 
-                      20, 20);
-              }
-            }
+          if (command == -1) {
+            command = (int)(recvBytes[byteOffset] & 0xFF);
+            commandLength = ((0xFF & recvBytes[byteOffset+1]) << 0) | ((0xFF & recvBytes[byteOffset+2]) << 8) |
+              ((0xFF & recvBytes[byteOffset+3]) << 16) | ((0xFF & recvBytes[byteOffset+4]) << 24);
+            //println("command: " + command + " commandLength: " + commandLength);
+            byteBuffer = ByteBuffer.allocate(commandLength);
+            byteOffset += 5;
+            byteCount -= 5;
           }
-        }
-        else if (command == 1) {
-          // parse depth
-          println("parse depth: " + byteBuffer.limit());
+        
+          // put btes 
+          int bytePutCount = min(commandLength, byteCount);
+          //println("bytePutCount: " + bytePutCount + " byteOffset: " + byteOffset + " commandLength: " + commandLength + " bytecapacity: " + byteBuffer.capacity());
+          byteBuffer.put(recvBytes, byteOffset, bytePutCount);
+          byteOffset += bytePutCount;
+          byteCount -= bytePutCount;
+          commandLength -= bytePutCount;
+          
+          //println("byteOffset: " + bytePutCount + " commandLength: " + commandLength);
+          if (commandLength == 0) {
+            byteBuffer.flip();
+            byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
+        
+            if (command == 0) {
+              parseBodies(byteBuffer);
+            }
+            else if (command == 1) {
+              parseDepth(byteBuffer);
+            }
+            command = -1;
+          }
         } 
-      
     }
   }
 }
