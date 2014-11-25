@@ -20,18 +20,25 @@ void draw() {
     // Read in the bytes
     int byteCount = myClient.readBytes(recvBytes); 
     if (byteCount > 0 ) {
-      try {
-        // Convert the byte array to a ByteBufer
-        ByteBuffer byteBuffer = ByteBuffer.wrap(recvBytes, 0, byteCount);
+      
+        println("start");
+        int command = (int)(recvBytes[0] & 0xFF);
+        int commandLength = ((0xFF & recvBytes[1]) << 0) | ((0xFF & recvBytes[2]) << 8) |
+            ((0xFF & recvBytes[3]) << 16) | ((0xFF & recvBytes[4]) << 24);
+        println("command: " + command + " commandLength: " + commandLength);
+        
+        if (commandLength <= 0 || commandLength > byteCount ||
+            (command != 0 && command != 1))
+           return; 
+        
+        ByteBuffer byteBuffer = ByteBuffer.allocate(commandLength);
+        byteBuffer.put(recvBytes, 4, commandLength);
+        byteBuffer.flip();
         println("byteBuffer: " + byteBuffer.limit());
         
-        int command = (int)(byteBuffer.get() & 0xFF);
-        int commandLength = byteBuffer.getInt() & 0xFFFF;
-        
-        println("command: " + command + " commandLength: " + commandLength);
         if (command == 0) {
           // parse bodies        
-          int bodyCount = byteBuffer.get() & 0xFFFF;
+          int bodyCount = (int)(byteBuffer.getShort() & 0xffff);
           println("parse bodies: " + bodyCount);
           long[] trackingIds = new long[6];
           for (int i=0; i<6; i++) {
@@ -63,8 +70,7 @@ void draw() {
           // parse depth
           println("parse depth: " + byteBuffer.limit());
         } 
-      } catch (BufferUnderflowException bue) {
-      }
+      
     }
   }
 }

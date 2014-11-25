@@ -59,7 +59,7 @@ int KinectAPI::BodiesToBinary(UINT64* trackingIds, std::map< JointType, std::arr
 
 	// write header
 	header.command = 0;
-	header.dataLength = 6 * JointType_Count * 3 * 4 + 8;
+	header.dataLength = 6 * JointType_Count * 3 * 4 + 2 + 8 * 6;
 	memcpy(binary, &header, sizeof(BodiesUpdateHeader));
 	//DebugOutput("%d\n", header.bodyCount);
 		
