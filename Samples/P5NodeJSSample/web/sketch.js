@@ -1,20 +1,26 @@
 var img;
 var bodyData;
+var imgWidth = 512;
+var imgHeight = 424;
 
 function setup() {
-  createCanvas(512, 424); 
-  img = createImage(512, 424);
+  createCanvas(imgWidth, imgHeight); 
+  img = createImage(imgWidth, imgHeight);
 }
 
 function updateDepth(imgArray) {
 	img.loadPixels();
-	  for(var x = 0; x < 512; x++) {
-	    for(var y = 0; y < 424; y++) {
-	    	var avg = imgArray[y*512 + x];
-	      img.set(x, y, [avg, avg, avg, 255]); 
-	    }
-	  }
-	  img.updatePixels();
+
+	for (var i = 0; i<imgArray.length; i++){
+		var idx = i * 4;
+		var color = imgArray[ i ];
+		img.pixels[ idx ] = color;
+		img.pixels[ idx + 1 ] = color;
+		img.pixels[ idx + 2 ] = color;
+		img.pixels[ idx + 3 ] = 255;
+	}
+
+	img.updatePixels();
 }
 
 function updateBodies(data) {
@@ -40,6 +46,6 @@ function drawBodies() {
 
 function draw() {
   background(0);
-  image(img, 0, 0, 512, 424);
+  image(img, 0, 0, imgWidth, imgHeight);
   drawBodies();
 }
