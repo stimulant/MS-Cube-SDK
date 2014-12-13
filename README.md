@@ -1,6 +1,6 @@
 Microsoft Cube SDK
 ===
-The Microsoft Cube SDK provides the means to collect data from an array of Kinects and display an interactive on the 5 sides of the cube.  Data is collected via the KinectTrasport app and then transmitted to Cinder, NodeJS or another framework.
+The Microsoft Cube SDK provides the means to collect data from an array of Kinects and display an interactive on the 5 sides of the cube.  Data is collected via the KinectTransport app and then transmitted to Cinder, NodeJS or another framework.
 
 # Installing
  1. Clone this repository onto your machine.
