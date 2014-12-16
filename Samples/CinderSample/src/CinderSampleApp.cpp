@@ -53,7 +53,11 @@ void CinderSampleApp::socketThreadFunc()
 	{
 		// wait for connection
 		if (!mConnected)
-			mConnected = SocketHelper::WaitForClient(mServerSocket, mClientSocket, 3000);
+		{
+			bool serverConnected = SocketHelper::CreateServerSocket(mServerSocket, 3000);
+			if (serverConnected)
+				mConnected = SocketHelper::WaitForClient(mServerSocket, mClientSocket);
+		}
 
 		// receive data
 		if (mConnected)

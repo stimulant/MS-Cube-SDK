@@ -41,6 +41,9 @@ KinectTransport/Release
 KinectTransport/ipch
 Samples/CinderSample/vc2012/Debug
 Samples/CinderSample/vc2012/Release
+DeployTool/Debug
+DeployTool/Release
+DeployTool/ipch
 
 # Unity generated
 Samples/UnitySample/Temp

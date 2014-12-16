@@ -42,10 +42,10 @@ bool SocketHelper::ConnectToServer(SOCKET& hSocket, int PortNo, const char* IPAd
         return true;
 }
 
-bool SocketHelper::WaitForClient(SOCKET& hServerSocket, SOCKET& hClientSocket, int PortNo)
+bool SocketHelper::CreateServerSocket(SOCKET& hServerSocket, int PortNo)
 {
 	// Setup socket address (listen on any port
-	SOCKADDR_IN target, client;
+	SOCKADDR_IN target;
     target.sin_family = AF_INET;
     target.sin_port = htons( PortNo );
 	target.sin_addr.s_addr = INADDR_ANY;
@@ -61,8 +61,13 @@ bool SocketHelper::WaitForClient(SOCKET& hServerSocket, SOCKET& hClientSocket, i
 		closesocket(hServerSocket);
 		return false;
 	}
-      
+	return true;
+}
+
+bool SocketHelper::WaitForClient(SOCKET& hServerSocket, SOCKET& hClientSocket)
+{  
     // Listen to incoming connections
+	SOCKADDR_IN client;
     listen(hServerSocket, 1);
     int c = sizeof(struct sockaddr_in);
     hClientSocket = accept(hServerSocket, (struct sockaddr *)&client, &c);

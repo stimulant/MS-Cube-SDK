@@ -4,11 +4,16 @@
 class SocketHelper
 {
 public:
+	// Global
 	static bool StartWinsock();
 	static void StopWinsock();
-
-	static bool ConnectToServer(SOCKET& hSocket, int PortNo, const char* IPAddress);
-	static bool WaitForClient(SOCKET& hServerSocket, SOCKET& hClientSocket, int PortNo);
 	static void CloseConnection(SOCKET& hSocket);
+
+	// Client
+	static bool ConnectToServer(SOCKET& hSocket, int PortNo, const char* IPAddress);
+
+	// Server
+	static bool CreateServerSocket(SOCKET& hServerSocket, int PortNo);
+	static bool WaitForClient(SOCKET& hServerSocket, SOCKET& hClientSocket);
 };
 
