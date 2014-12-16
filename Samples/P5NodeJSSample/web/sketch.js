@@ -11,9 +11,9 @@ function setup() {
 function updateDepth(imgArray) {
 	img.loadPixels();
 
-	for (var i = 0; i<imgArray.length; i++){
+	for (var i = 0; i<(imgWidth * imgHeight); i++){
 		var idx = i * 4;
-		var color = imgArray[ i ];
+		var color = imgArray[ i*2 ];
 		img.pixels[ idx ] = color;
 		img.pixels[ idx + 1 ] = color;
 		img.pixels[ idx + 2 ] = color;

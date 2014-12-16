@@ -8,7 +8,7 @@ kinectData.bodyTrackingIds = [];
 kinectData.bodies = [];
 kinectData.depthWidth = 0;
 kinectData.depthHeight = 0;
-kinectData.depthBuffer = new Buffer(217088);
+kinectData.depthBuffer = new Buffer(495630);
 kinectData.depthReady = false;
 
 for (var s=0; s < 6; s++) {
