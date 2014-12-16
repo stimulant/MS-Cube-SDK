@@ -14,5 +14,7 @@ class DeployApp
 public:
 	DeployApp(std::string appDirectory, std::string appExecutable);
 	~DeployApp(void);
+
+	bool SendToClient(SOCKET clientSocket);
 };
 

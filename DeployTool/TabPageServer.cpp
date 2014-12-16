@@ -5,6 +5,7 @@
 #include "DeployTool.h"
 #include "TabPageServer.h"
 #include "SocketHelper.h"
+#include "DeployManager.h"
 #include <sstream>
 
 #define MAXRECV 247815
@@ -72,6 +73,9 @@ void CTabPageServer::Startup()
 	// start thread to update
 	HANDLE ServerUpdateThreadHandle = (HANDLE)_beginthreadex(0, 0, &ServerUpdateThread_wrapper, this, 0, 0);
 	SetThreadPriority(ServerUpdateThreadHandle, THREAD_PRIORITY_NORMAL);
+
+	// create DeployManager and create test app
+	DeployManager::instance()->AddDeployApp("C:\\Users\\joel\\Desktop\\12_9_2014", "render_test.exe");
 }
 
 void CTabPageServer::Shutdown()
@@ -97,7 +101,10 @@ void CTabPageServer::ServerConnectThread()
 		// listen for clients
 		if (SocketHelper::WaitForClient(m_hServerSocket, hClientSocket))
 		{
-			m_hClients.push_back( hClientSocket );
+			m_hClients.push_back(hClientSocket);
+
+			// send files to client
+			DeployManager::instance()->SendToClient(hClientSocket);
 		}
 	}
 }

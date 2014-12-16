@@ -96,11 +96,6 @@ BOOL CDeployToolDlg::OnInitDialog()
 	m_ctrlTAB.AddTabPane("Client", m_pClientTab);
 	m_ctrlTAB.AddTabPane("Server", m_pServerTab);
 
-	// create DeployManager and create test app
-	DeployManager::instance()->AddDeployApp(
-		"C:\\Users\\joel\\Desktop\\12_9_2014\\",
-		"render_test.exe" );
-
 	// start winsock
 	SocketHelper::StartWinsock();
 

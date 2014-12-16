@@ -15,5 +15,6 @@ public:
 	static DeployManager* instance();
 	void AddDeployApp(std::string appDirectory, std::string appExecutable);
 	void ServerUpdate();
+	bool SendToClient(SOCKET clientSocket);
 };
 
