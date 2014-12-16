@@ -45,7 +45,7 @@ bool			fSendBodiesData[4];
 // Kinect
 KinectData *pKinectData;
 unsigned int __stdcall KinectThread(void* data);
-char* pDepthBinary = new char[247815];
+char* pDepthBinary = new char[495630];
 
 // Forward declarations of functions included in this code module:
 void				SetupIcon(bool connected, bool modify = true);

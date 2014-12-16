@@ -105,26 +105,25 @@ int KinectAPI::DepthToBinary(int nWidth, int nHeight, UINT16 *pBuffer, USHORT nM
 
 	// write header
 	header.command = 1;
-	header.dataLength = nWidth * nHeight + 4;
+	header.dataLength = nWidth * nHeight * 2 + 4;
 	header.width = nWidth;
 	header.height = nHeight;
 	memcpy(binary, &header, sizeof(DepthUpdateHeader));
-	int byteOffset = sizeof(DepthUpdateHeader);
 
     // end pixel is start + width*height - 1
     const UINT16* pBufferEnd = pBuffer + (nWidth * nHeight);
-
+	int byteOffset = sizeof(DepthUpdateHeader);
+	
     while (pBuffer < pBufferEnd)
     {
         USHORT depth = *pBuffer;
 		if (depth < nMinDepth || depth > nMaxDepth)
-			binary[byteOffset] = 0;
+			*((UINT16*)(binary + byteOffset)) = 0;
 		else
 		{
-			//pDepthFrame[byteOffset] = static_cast<char>((depth >= nMinDepth) && (depth <= nMaxDepth) ? (depth % 256) : 0);
-			binary[byteOffset] = static_cast<char>(((float)depth/(float)nMaxDepth) * 255);
+			*((UINT16*)(binary + byteOffset)) = depth;
 		}
-		byteOffset++;
+		byteOffset+=2;
 		pBuffer++;
 	}
 

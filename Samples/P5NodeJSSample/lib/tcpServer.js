@@ -37,14 +37,14 @@ function parseDepth(kinectData, data) {
 
 	// copy buffer data to kinectData
 	//console.log("parsing depth: " + kinectData.depthWidth + ", " + kinectData.depthHeight);
-	data.copy(kinectData.depthBuffer, 0, offset, kinectData.depthWidth * kinectData.depthHeight + offset);
-	offset += kinectData.depthWidth * kinectData.depthHeight;
+	data.copy(kinectData.depthBuffer, 0, offset, kinectData.depthWidth * kinectData.depthHeight * 2 + offset);
+	offset += kinectData.depthWidth * kinectData.depthHeight * 2;
 	kinectData.depthReady = true;
 }
 
 // maximum size of frame is 247815 bytes (512x424 + 7)
 var parseCommandId = -1;
-var parseBuffer = new Buffer(247815);
+var parseBuffer = new Buffer(495630);
 var parseDataOffset = 0;
 var parseDataLength = 0;
 
@@ -54,7 +54,7 @@ function parseCommand(data, dataOffset) {
 	if (parseCommandId != 0 && parseCommandId != 1 )
 		throw ("parseCommandId: " + parseCommandId);
 	parseDataLength	= data.readUInt32LE(dataOffset); dataOffset += 4;
-	if (parseDataLength > 247815)
+	if (parseDataLength > 495630)
 		throw ("parseDataLength: " + parseDataLength);
 	//console.log("parseCommandId: " + parseCommandId + ", parseDataLength: " + parseDataLength);
 	return dataOffset;
@@ -79,6 +79,7 @@ function start(host, port, kinectData) {
 		socket.on('data', function(data) {
 			var dataOffset = 0;
 			var dataLeft = data.length;
+			//console.log('data.length: ' + data.length);
 
 			while (dataLeft > 0) {				
 				// if we don't have a command yet, parse it out of data
