@@ -5,6 +5,7 @@
 #include "DeployTool.h"
 #include "TabPageClient.h"
 #include "SocketHelper.h"
+#include "DeployFile.h"
 #include <sstream>
 
 #define MAXRECV 247815
@@ -91,6 +92,13 @@ void CTabPageClient::ClientThread()
 		// if we are connected wait for a command from the deployment server
 		if (m_fConnected)
 		{
+			if (!DeployFile::ReceiveFile(m_hSocket))
+			{
+				closesocket(m_hSocket);
+				m_fConnected = false;
+			}
+
+			/*
 			//Check if it was for closing , and also read the incoming message
 			//recv does not place a null terminator at the end of the string (whilst printf %s assumes there is one).
 			int result = recv(m_hSocket, m_RecvBuffer, MAXRECV, 0);
@@ -115,6 +123,7 @@ void CTabPageClient::ClientThread()
 			{
 				// parse command
 			}
+			*/
 		}
 	}
 }

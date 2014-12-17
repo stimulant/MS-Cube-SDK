@@ -33,12 +33,15 @@ bool DeployFile::SendToClient(SOCKET hSocket)
 {
 	// send file name
 	send(hSocket, m_strFileName.c_str(), m_strFileName.length(), 0);
-	char rec[32] = ""; recv(hSocket, rec, 32, 0);
+	char rec[32] = ""; 
+	if (recv(hSocket, rec, 32, 0) <= 0)
+		return false;
 
 	// send file size
 	char filesizeStr[10]; _ltoa((long)m_FileSize, filesizeStr, 10);
 	send(hSocket, filesizeStr, strlen(filesizeStr), 0);
-	recv(hSocket, rec, 32, 0);
+	if (recv(hSocket, rec, 32, 0) <= 0)
+		return false;
 
 	// send file
 	std::string filePath = m_strPath + "\\" + m_strFileName;
@@ -51,64 +54,21 @@ bool DeployFile::SendToClient(SOCKET hSocket)
 		{
 			fread(buffer, 1024, 1, fr);
 			send(hSocket, buffer, 1024, 0);
-			recv(hSocket, rec, 32, 0);
+			if (recv(hSocket, rec, 32, 0) <= 0)
+				return false;
 		}
 		else
 		{
 			fread(buffer, size, 1, fr);
 			buffer[size]='\0';
 			send(hSocket, buffer, size, 0);
-			recv(hSocket, rec, 32, 0);
+			if (recv(hSocket, rec, 32, 0) <= 0)
+				return false;
 		}
 		size -= 1024;
 	}
 	fclose(fr);
 	return true;
-
-	/*
-	DeployFileHeader header;
-	LARGE_INTEGER filesize;
-	memset(&header, 0, sizeof(DeployFileHeader));
-
-	// setup file header
-	strcpy(header.fileName, m_strFileName.c_str());
-	strcpy(header.path, m_strPath.c_str());
-	filesize.LowPart = m_FindData.nFileSizeLow;
-	filesize.HighPart = m_FindData.nFileSizeHigh;
-	header.fileLength = filesize.QuadPart;
-
-	// send file header
-	if (send(hSocket, (const char *)&header, sizeof(DeployFileHeader), 0) == -1)
-	{
-		return false; // disconnected
-	}
-
-	// send file data
-	std::string filePath = m_strPath + "\\" + m_strFileName;
-	std::ifstream inFile(filePath.c_str(), std::ifstream::binary);
-	inFile.seekg(0, std::ifstream::beg);
-	int pos = inFile.tellg();
-	while (pos != -1)
-	{
-		char *p = new char[1024];
-		memset(p, 0, 1024);
-		inFile.read(p, 1024);
-
-		printf("%ld\n", inFile.gcount());
-		int n = send(hSocket, p, 1024, 0);
-		if (n < 0)
-		{
-			DBOUT( "ERROR writing to socket\n" );
-			return false;
-		}
-		else
-			DBOUT( "File sent: " << m_strPath << "\\" << m_strFileName << "\n" );
-
-		delete p;
-	}
-	inFile.close();
-	return true;
-	*/
 }
 
 bool DeployFile::ReceiveFile(SOCKET hSocket)
