@@ -7,12 +7,12 @@ class CTabPageClient : public CDialog
 {
 	DECLARE_DYNAMIC(CTabPageClient)
 
-	bool m_fExitThread;
-	SOCKET m_hSocket;
-	bool m_fConnected;
-	std::string m_strDeployServer;
-	int m_DeployPort;
-	char* m_RecvBuffer;
+	bool mfExitThread;
+	SOCKET mSocket;
+	bool mConnected;
+	std::string mStrDeployServer;
+	int mDeployPort;
+	char* mRecvBuffer;
 
 	void ClientThread();
 

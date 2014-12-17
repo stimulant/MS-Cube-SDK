@@ -26,9 +26,9 @@ IMPLEMENT_DYNAMIC(CTabPageServer, CDialog)
 CTabPageServer::CTabPageServer(CWnd* pParent /*=NULL*/)
 	: CDialog(CTabPageServer::IDD, pParent)
 {
-	m_RecvBuffer = new char[MAXRECV];
-	m_SendBuffer = new char[MAXRECV];
-	m_DeployPort = 5000;
+	mRecvBuffer = new char[MAXRECV];
+	mSendBuffer = new char[MAXRECV];
+	mDeployPort = 5000;
 }
 
 CTabPageServer::~CTabPageServer()
@@ -40,12 +40,10 @@ void CTabPageServer::DoDataExchange(CDataExchange* pDX)
 	CDialog::DoDataExchange(pDX);
 }
 
-
 BEGIN_MESSAGE_MAP(CTabPageServer, CDialog)
 	ON_BN_CLICKED(IDOK, OnBnClickedOk)
 	ON_WM_SHOWWINDOW()
 END_MESSAGE_MAP()
-
 
 // CTabPageServer message handlers
 
@@ -61,10 +59,10 @@ void CTabPageServer::OnShowWindow(BOOL bShow, UINT nStatus)
 
 void CTabPageServer::Startup()
 {
-	m_fExitThread = false;
+	mfExitThread = false;
 
 	// startup server thread
-	SocketHelper::CreateServerSocket(m_hServerSocket, m_DeployPort);
+	SocketHelper::CreateServerSocket(mhServerSocket, mDeployPort);
 
 	// start thread to connect to clients
 	HANDLE ServerConnectThreadHandle = (HANDLE)_beginthreadex(0, 0, &ServerConnectThread_wrapper, this, 0, 0);
@@ -80,10 +78,10 @@ void CTabPageServer::Startup()
 
 void CTabPageServer::Shutdown()
 {
-	m_fExitThread = true;
+	mfExitThread = true;
 
 	// Close the socket and mark as 0 in list for reuse
-	closesocket(m_hServerSocket);
+	closesocket(mhServerSocket);
 }
 
 unsigned int __stdcall ServerConnectThread_wrapper(void* data)
@@ -94,17 +92,20 @@ unsigned int __stdcall ServerConnectThread_wrapper(void* data)
 
 void CTabPageServer::ServerConnectThread()
 {
-	while (!m_fExitThread)
+	while (!mfExitThread)
 	{
 		SOCKET hClientSocket;
 
 		// listen for clients
-		if (SocketHelper::WaitForClient(m_hServerSocket, hClientSocket))
+		if (SocketHelper::WaitForClient(mhServerSocket, hClientSocket))
 		{
-			m_hClients.push_back(hClientSocket);
+			mhClients.push_back(hClientSocket);
 
 			// send files to client
 			DeployManager::instance()->SendToClient(hClientSocket);
+
+			// start up the app
+			DeployManager::instance()->StartApp(hClientSocket, "render_test.exe");
 		}
 		Sleep(100);
 	}
@@ -118,7 +119,7 @@ unsigned int __stdcall ServerUpdateThread_wrapper(void* data)
 
 void CTabPageServer::ServerUpdateThread()
 {
-	while (!m_fExitThread)
+	while (!mfExitThread)
 	{
 		// update clients
 	}

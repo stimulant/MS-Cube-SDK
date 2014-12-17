@@ -19,7 +19,7 @@ protected:
 private:
 	CArray<CString,CString> TabCaptions;
 	CArray<CDialog *,CDialog *> TabPanes;
-	int m_iCurSel;
+	int miCurSel;
 public:
 	afx_msg void OnNMClick(NMHDR *pNMHDR, LRESULT *pResult);
 	void AddTabPane(CString strCaption,CDialog * pDlg);

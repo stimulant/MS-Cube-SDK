@@ -25,10 +25,10 @@ IMPLEMENT_DYNAMIC(CTabPageClient, CDialog)
 CTabPageClient::CTabPageClient(CWnd* pParent /*=NULL*/)
 	: CDialog(CTabPageClient::IDD, pParent)
 {
-	m_fConnected = false;
-	m_RecvBuffer = new char[MAXRECV];
-	m_strDeployServer = "127.0.0.1";
-	m_DeployPort = 5000;
+	mConnected = false;
+	mRecvBuffer = new char[MAXRECV];
+	mStrDeployServer = "127.0.0.1";
+	mDeployPort = 5000;
 }
 
 CTabPageClient::~CTabPageClient()
@@ -39,7 +39,6 @@ void CTabPageClient::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 }
-
 
 BEGIN_MESSAGE_MAP(CTabPageClient, CDialog)
 	ON_WM_SHOWWINDOW()
@@ -53,7 +52,7 @@ void CTabPageClient::OnShowWindow(BOOL bShow, UINT nStatus)
 
 void CTabPageClient::Startup()
 {
-	m_fExitThread = false;
+	mfExitThread = false;
 
 	// start thread to listen for client
 	HANDLE ClientThreadHandle = (HANDLE)_beginthreadex(0, 0, &ClientThread_wrapper, this, 0, 0);
@@ -62,11 +61,11 @@ void CTabPageClient::Startup()
 
 void CTabPageClient::Shutdown()
 {
-	m_fExitThread = true;
+	mfExitThread = true;
 
 	// Close the socket and mark as 0 in list for reuse
-	closesocket(m_hSocket);
-	m_fConnected = false;
+	closesocket(mSocket);
+	mConnected = false;
 }
 
 unsigned int __stdcall ClientThread_wrapper(void* data)
@@ -77,26 +76,57 @@ unsigned int __stdcall ClientThread_wrapper(void* data)
 
 void CTabPageClient::ClientThread()
 {
-	while (!m_fExitThread)
+	while (!mfExitThread)
 	{
 		// keep trying to connect if we aren't already
-		if (!m_fConnected)
+		if (!mConnected)
 		{
-			m_fConnected = SocketHelper::ConnectToServer(m_hSocket, m_DeployPort, m_strDeployServer.c_str());
-			if (m_fConnected)
+			mConnected = SocketHelper::ConnectToServer(mSocket, mDeployPort, mStrDeployServer.c_str());
+			if (mConnected)
 			{
 				//strConnectedHost[i] = strDestinationHost[i];
 			}
 		}
 
 		// if we are connected wait for a command from the deployment server
-		if (m_fConnected)
+		if (mConnected)
 		{
-			if (!DeployFile::ReceiveFile(m_hSocket))
+			// receive command
+			char command[32] = "";
+			recv(mSocket, command, 32, 0);
+			//DBOUT("CLIENT: received command: " << command << "\n");
+			send(mSocket, "OK", 2, 0);
+
+			if (strcmp(command, "SENDFILE") == 0)
 			{
-				closesocket(m_hSocket);
-				m_fConnected = false;
+				// receive file
+				if (!DeployFile::ReceiveFile(mSocket))
+				{
+					closesocket(mSocket);
+					mConnected = false;
+				}
 			}
+			if (strcmp(command, "STARTAPP") == 0)
+			{
+				// receive executable name
+				char executableName[128] = "";
+				recv(mSocket, executableName, 128, 0);
+				DBOUT("CLIENT: starting executable: " << executableName << "\n");
+				send(mSocket, "OK", 2, 0);
+				//DBOUT("CLIENT: sent executable ack\n");
+
+				STARTUPINFO info={sizeof(info)};
+				PROCESS_INFORMATION processInfo;
+				CreateProcess(executableName, executableName, NULL, NULL, TRUE, 0, NULL, NULL, &info, &processInfo);
+				/*
+				if (CreateProcess(path, cmd, NULL, NULL, TRUE, 0, NULL, NULL, &info, &processInfo))
+				{
+					::WaitForSingleObject(processInfo.hProcess, INFINITE);
+					CloseHandle(processInfo.hProcess);
+					CloseHandle(processInfo.hThread);
+				}*/
+			}
+
 			Sleep(100);
 		}
 	}

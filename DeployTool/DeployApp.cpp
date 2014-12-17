@@ -4,8 +4,8 @@
 
 DeployApp::DeployApp(std::string appDirectory, std::string appExecutable)
 {
-	m_appDirectory = appDirectory;
-	m_appExecutable = appExecutable;
+	mappDirectory = appDirectory;
+	mappExecutable = appExecutable;
 
 	AddDirectoryFiles(appDirectory, "");
 }
@@ -50,7 +50,7 @@ bool DeployApp::AddDirectoryFiles(std::string rootDirectory, std::string directo
 
 			// we have a valid file, add it
 			std::string fileName = ffd.cFileName;
-			m_files.push_back(new DeployFile(fileName, directory, ffd));
+			mfiles.push_back(new DeployFile(fileName, directory, ffd));
 		}
 	}
 	while (FindNextFile(hFind, &ffd) != 0);
@@ -61,9 +61,9 @@ bool DeployApp::AddDirectoryFiles(std::string rootDirectory, std::string directo
 
 bool DeployApp::SendToClient(SOCKET clientSocket)
 {
-	for (unsigned int i=0; i<m_files.size(); i++)
+	for (unsigned int i=0; i<mfiles.size(); i++)
 	{
-		if (!m_files[i]->SendToClient(m_appDirectory, clientSocket))
+		if (!mfiles[i]->SendToClient(mappDirectory, clientSocket))
 			return false;
 	}
 	return true;

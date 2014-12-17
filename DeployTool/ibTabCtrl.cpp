@@ -11,7 +11,7 @@
 IMPLEMENT_DYNAMIC(CibTabCtrl, CTabCtrl)
 CibTabCtrl::CibTabCtrl()
 {
-	m_iCurSel = -1;
+	miCurSel = -1;
 }
 
 CibTabCtrl::~CibTabCtrl()
@@ -36,14 +36,14 @@ void CibTabCtrl::OnNMClick(NMHDR *pNMHDR, LRESULT *pResult)
 	CRect r;
 	iTab=GetCurSel();
 	CDialog *p;
-	m_iCurSel=iTab;
+	miCurSel=iTab;
 	while(iPaneCount<TabPanes.GetCount())
 	{
 		p = TabPanes.GetAt(iPaneCount); 
 		p->ShowWindow(SW_HIDE);
 		iPaneCount++;
 	}
-	p = TabPanes.GetAt(m_iCurSel);
+	p = TabPanes.GetAt(miCurSel);
 	GetWindowRect(r);
 	p->SetWindowPos(&CWnd::wndBottom,r.left+3,r.top+25,r.Width()-7,r.Height()-30,SWP_SHOWWINDOW);  
 	p->ShowWindow(SW_SHOW); 
@@ -67,9 +67,9 @@ void CibTabCtrl::OnMove(int x, int y)
 	CTabCtrl::OnMove(x, y);
 	CDialog *p;
 	CRect r;
-	if(m_iCurSel>-1)
+	if(miCurSel>-1)
 	{
-		p = TabPanes.GetAt(m_iCurSel);
+		p = TabPanes.GetAt(miCurSel);
 		GetWindowRect(r);
 		p->SetWindowPos(&CWnd::wndBottom,r.left+3,r.top+25,r.Width()-7,r.Height()-30,SWP_SHOWWINDOW);  
 		p->ShowWindow(SW_SHOW); 
@@ -81,7 +81,7 @@ void CibTabCtrl::SetDefaultPane(int iPaneIndex)
 {
 	CDialog *p;
 	CRect r;
-	m_iCurSel = iPaneIndex;
+	miCurSel = iPaneIndex;
 	if(iPaneIndex<TabPanes.GetCount())
 	{
 		SetCurSel(iPaneIndex);

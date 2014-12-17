@@ -25,7 +25,7 @@ public:
 
 // Implementation
 protected:
-	HICON m_hIcon;
+	HICON mhIcon;
 
 	// Generated message map functions
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
@@ -37,20 +37,20 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 private:
-	BOOL			m_bMinimizeToTray;
-	BOOL			m_bTrayIconVisible;
-	NOTIFYICONDATA	m_nidIconData;
-	CMenu			m_mnuTrayMenu;
-	UINT			m_nDefaultMenuItem;
+	BOOL			mbMinimizeToTray;
+	BOOL			mbTrayIconVisible;
+	NOTIFYICONDATA	mnidIconData;
+	CMenu			mmnuTrayMenu;
+	UINT			mnDefaultMenuItem;
 
-	CTabPageClient *m_pClientTab;
-	CTabPageServer *m_pServerTab;
-	int m_bInit;
+	CTabPageClient *mpClientTab;
+	CTabPageServer *mpServerTab;
+	int mbInit;
 
 	afx_msg LRESULT OnTrayNotify(WPARAM wParam, LPARAM lParam);
 
 public:
-	CibTabCtrl m_ctrlTAB;
+	CibTabCtrl mctrlTAB;
 	afx_msg void OnMove(int x, int y);
 	afx_msg void OnShowWindow(BOOL bShow, UINT nStatus);
 

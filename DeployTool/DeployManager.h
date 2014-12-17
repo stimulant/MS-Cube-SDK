@@ -1,11 +1,13 @@
 #pragma once
 #include "DeployApp.h"
 #include <vector>
+#include <map>
 #include <string>
 
 class DeployManager
 {
-	std::vector<DeployApp*> m_Apps;
+	//std::vector<DeployApp*> mApps;
+	std::map<std::string, DeployApp*> mApps;
 	static DeployManager* mInstance;
 
 public:
@@ -16,5 +18,6 @@ public:
 	void AddDeployApp(std::string appDirectory, std::string appExecutable);
 	void ServerUpdate();
 	bool SendToClient(SOCKET clientSocket);
+	bool StartApp(SOCKET clientSocket, std::string appExecutable);
 };
 

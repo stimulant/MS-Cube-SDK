@@ -21,7 +21,7 @@ DeployManager::~DeployManager(void)
 
 void DeployManager::AddDeployApp(std::string appDirectory, std::string appExecutable)
 {
-	m_Apps.push_back( new DeployApp( appDirectory, appExecutable ) );
+	mApps[appExecutable] = new DeployApp( appDirectory, appExecutable );
 }
 
 void DeployManager::ServerUpdate()
@@ -30,10 +30,30 @@ void DeployManager::ServerUpdate()
 
 bool DeployManager::SendToClient(SOCKET clientSocket)
 {
-	for (unsigned int i=0; i<m_Apps.size(); i++)
+	for(std::map<std::string, DeployApp*>::iterator iterator = mApps.begin(); iterator != mApps.end(); iterator++) 
 	{
-		if (!m_Apps[i]->SendToClient(clientSocket))
+		if (!iterator->second->SendToClient(clientSocket))
 			return false;
 	}
+	return true;
+}
+
+bool DeployManager::StartApp(SOCKET clientSocket, std::string appExecutable)
+{
+	// send command
+	char command[32] = "STARTAPP";
+	send(clientSocket, command, 32, 0);
+	char rec[32] = ""; 
+	if (recv(clientSocket, rec, 2, 0) <= 0)
+		return false;
+
+	// send executable name
+	char executableName[128] = "";
+	strcpy(executableName, appExecutable.c_str());
+	executableName[appExecutable.length()] = '\0';
+	send(clientSocket, executableName, 128, 0);
+	if (recv(clientSocket, rec, 2, 0) <= 0)
+		return false;
+
 	return true;
 }

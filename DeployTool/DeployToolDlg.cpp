@@ -19,29 +19,29 @@
 CDeployToolDlg::CDeployToolDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CDeployToolDlg::IDD, pParent)
 {
-	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-	m_bInit = false;
-	m_pClientTab=NULL;
-	m_pServerTab=NULL;
+	mhIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	mbInit = false;
+	mpClientTab=NULL;
+	mpServerTab=NULL;
 
-	m_nidIconData.cbSize			= sizeof(NOTIFYICONDATA);
-	m_nidIconData.hWnd				= 0;
-	m_nidIconData.uID				= 1;
-	m_nidIconData.uCallbackMessage	= WM_TRAY_ICON_NOTIFY_MESSAGE;
-	m_nidIconData.hIcon				= 0;
-	m_nidIconData.szTip[0]			= 0;	
-	m_nidIconData.uFlags			= NIF_MESSAGE;
-	m_bTrayIconVisible				= FALSE;
-	m_nDefaultMenuItem				= 0;
-	m_bMinimizeToTray				= TRUE;
+	mnidIconData.cbSize			= sizeof(NOTIFYICONDATA);
+	mnidIconData.hWnd				= 0;
+	mnidIconData.uID				= 1;
+	mnidIconData.uCallbackMessage	= WM_TRAY_ICON_NOTIFY_MESSAGE;
+	mnidIconData.hIcon				= 0;
+	mnidIconData.szTip[0]			= 0;	
+	mnidIconData.uFlags			= NIF_MESSAGE;
+	mbTrayIconVisible				= FALSE;
+	mnDefaultMenuItem				= 0;
+	mbMinimizeToTray				= TRUE;
 
-	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	mhIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
 
 void CDeployToolDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	DDX_Control(pDX, IDC_TAB, m_ctrlTAB);
+	DDX_Control(pDX, IDC_TAB, mctrlTAB);
 }
 
 BEGIN_MESSAGE_MAP(CDeployToolDlg, CDialog)
@@ -64,8 +64,8 @@ int CDeployToolDlg::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if (CDialog::OnCreate(lpCreateStruct) == -1)
 		return -1;
 	
-	m_nidIconData.hWnd = this->m_hWnd;
-	m_nidIconData.uID = 1;
+	mnidIconData.hWnd = this->m_hWnd;
+	mnidIconData.uID = 1;
 	
 	return 0;
 }
@@ -73,9 +73,9 @@ int CDeployToolDlg::OnCreate(LPCREATESTRUCT lpCreateStruct)
 void CDeployToolDlg::OnDestroy() 
 {
 	CDialog::OnDestroy();
-	if(m_nidIconData.hWnd && m_nidIconData.uID>0 && TrayIsVisible())
+	if(mnidIconData.hWnd && mnidIconData.uID>0 && TrayIsVisible())
 	{
-		Shell_NotifyIcon(NIM_DELETE,&m_nidIconData);
+		Shell_NotifyIcon(NIM_DELETE,&mnidIconData);
 	}
 }
 
@@ -85,22 +85,22 @@ BOOL CDeployToolDlg::OnInitDialog()
 
 	// Set the icon for this dialog.  The framework does this automatically
 	//  when the application's main window is not a dialog
-	SetIcon(m_hIcon, TRUE);			// Set big icon
-	SetIcon(m_hIcon, FALSE);		// Set small icon
+	SetIcon(mhIcon, TRUE);			// Set big icon
+	SetIcon(mhIcon, FALSE);		// Set small icon
 	
 	// TODO: Add extra initialization here
-	m_pClientTab = new CTabPageClient();
-	m_pClientTab->Create(IDD_DIALOG_PAGE1,m_ctrlTAB.GetWindow(IDD_DIALOG_PAGE1));
-	m_pServerTab = new CTabPageServer();
-	m_pServerTab->Create(IDD_DIALOG_PAGE2,m_ctrlTAB.GetWindow(IDD_DIALOG_PAGE2));
-	m_ctrlTAB.AddTabPane("Client", m_pClientTab);
-	m_ctrlTAB.AddTabPane("Server", m_pServerTab);
+	mpClientTab = new CTabPageClient();
+	mpClientTab->Create(IDD_DIALOG_PAGE1,mctrlTAB.GetWindow(IDD_DIALOG_PAGE1));
+	mpServerTab = new CTabPageServer();
+	mpServerTab->Create(IDD_DIALOG_PAGE2,mctrlTAB.GetWindow(IDD_DIALOG_PAGE2));
+	mctrlTAB.AddTabPane("Client", mpClientTab);
+	mctrlTAB.AddTabPane("Server", mpServerTab);
 
 	// start winsock
 	SocketHelper::StartWinsock();
 
 	// start up client
-	m_pClientTab->Startup();
+	mpClientTab->Startup();
 	
 	CMenu* pSysMenu = GetSystemMenu(FALSE);
 	if (pSysMenu != NULL)
@@ -141,7 +141,7 @@ void CDeployToolDlg::OnPaint()
 		int y = (rect.Height() - cyIcon + 1) / 2;
 
 		// Draw the icon
-		dc.DrawIcon(x, y, m_hIcon);
+		dc.DrawIcon(x, y, mhIcon);
 	}
 	else
 	{
@@ -153,31 +153,31 @@ void CDeployToolDlg::OnPaint()
 //  the minimized window.
 HCURSOR CDeployToolDlg::OnQueryDragIcon()
 {
-	return static_cast<HCURSOR>(m_hIcon);
+	return static_cast<HCURSOR>(mhIcon);
 }
 
 void CDeployToolDlg::OnMove(int x, int y)
 {
-	m_ctrlTAB.OnMove(x,y); 
+	mctrlTAB.OnMove(x,y); 
 }
 
 void CDeployToolDlg::OnShowWindow(BOOL bShow, UINT nStatus)
 {
 	CDialog::OnShowWindow(bShow, nStatus);
-	m_ctrlTAB.SetDefaultPane(0);
+	mctrlTAB.SetDefaultPane(0);
 }
 
 BOOL CDeployToolDlg::TrayIsVisible()
 {
-	return m_bTrayIconVisible;
+	return mbTrayIconVisible;
 }
 
 void CDeployToolDlg::TraySetIcon(HICON hIcon)
 {
 	ASSERT(hIcon);
 
-	m_nidIconData.hIcon = hIcon;
-	m_nidIconData.uFlags |= NIF_ICON;
+	mnidIconData.hIcon = hIcon;
+	mnidIconData.uFlags |= NIF_ICON;
 }
 
 void CDeployToolDlg::TraySetIcon(UINT nResourceID)
@@ -187,8 +187,8 @@ void CDeployToolDlg::TraySetIcon(UINT nResourceID)
 	hIcon = AfxGetApp()->LoadIcon(nResourceID);
 	if(hIcon)
 	{
-		m_nidIconData.hIcon = hIcon;
-		m_nidIconData.uFlags |= NIF_ICON;
+		mnidIconData.hIcon = hIcon;
+		mnidIconData.uFlags |= NIF_ICON;
 	}
 	else
 	{
@@ -202,8 +202,8 @@ void CDeployToolDlg::TraySetIcon(LPCTSTR lpszResourceName)
 	hIcon = AfxGetApp()->LoadIcon(lpszResourceName);
 	if(hIcon)
 	{
-		m_nidIconData.hIcon = hIcon;
-		m_nidIconData.uFlags |= NIF_ICON;
+		mnidIconData.hIcon = hIcon;
+		mnidIconData.uFlags |= NIF_ICON;
 	}
 	else
 	{
@@ -215,18 +215,18 @@ void CDeployToolDlg::TraySetToolTip(LPCTSTR lpszToolTip)
 {
 	ASSERT(strlen(lpszToolTip) > 0 && strlen(lpszToolTip) < 64);
 
-	strcpy(m_nidIconData.szTip,lpszToolTip);
-	m_nidIconData.uFlags |= NIF_TIP;
+	strcpy(mnidIconData.szTip,lpszToolTip);
+	mnidIconData.uFlags |= NIF_TIP;
 }
 
 BOOL CDeployToolDlg::TrayShow()
 {
 	BOOL bSuccess = FALSE;
-	if(!m_bTrayIconVisible)
+	if(!mbTrayIconVisible)
 	{
-		bSuccess = Shell_NotifyIcon(NIM_ADD,&m_nidIconData);
+		bSuccess = Shell_NotifyIcon(NIM_ADD,&mnidIconData);
 		if(bSuccess)
-			m_bTrayIconVisible= TRUE;
+			mbTrayIconVisible= TRUE;
 	}
 	else
 	{
@@ -238,11 +238,11 @@ BOOL CDeployToolDlg::TrayShow()
 BOOL CDeployToolDlg::TrayHide()
 {
 	BOOL bSuccess = FALSE;
-	if(m_bTrayIconVisible)
+	if(mbTrayIconVisible)
 	{
-		bSuccess = Shell_NotifyIcon(NIM_DELETE,&m_nidIconData);
+		bSuccess = Shell_NotifyIcon(NIM_DELETE,&mnidIconData);
 		if(bSuccess)
-			m_bTrayIconVisible= FALSE;
+			mbTrayIconVisible= FALSE;
 	}
 	else
 	{
@@ -254,9 +254,9 @@ BOOL CDeployToolDlg::TrayHide()
 BOOL CDeployToolDlg::TrayUpdate()
 {
 	BOOL bSuccess = FALSE;
-	if(m_bTrayIconVisible)
+	if(mbTrayIconVisible)
 	{
-		bSuccess = Shell_NotifyIcon(NIM_MODIFY,&m_nidIconData);
+		bSuccess = Shell_NotifyIcon(NIM_MODIFY,&mnidIconData);
 	}
 	else
 	{
@@ -268,20 +268,20 @@ BOOL CDeployToolDlg::TrayUpdate()
 BOOL CDeployToolDlg::TraySetMenu(UINT nResourceID,UINT nDefaultPos)
 {
 	BOOL bSuccess;
-	bSuccess = m_mnuTrayMenu.LoadMenu(nResourceID);
+	bSuccess = mmnuTrayMenu.LoadMenu(nResourceID);
 	return bSuccess;
 }
 
 BOOL CDeployToolDlg::TraySetMenu(LPCTSTR lpszMenuName,UINT nDefaultPos)
 {
 	BOOL bSuccess;
-	bSuccess = m_mnuTrayMenu.LoadMenu(lpszMenuName);
+	bSuccess = mmnuTrayMenu.LoadMenu(lpszMenuName);
 	return bSuccess;
 }
 
 BOOL CDeployToolDlg::TraySetMenu(HMENU hMenu,UINT nDefaultPos)
 {
-	m_mnuTrayMenu.Attach(hMenu);
+	mmnuTrayMenu.Attach(hMenu);
 	return TRUE;
 }
 
@@ -312,8 +312,8 @@ LRESULT CDeployToolDlg::OnTrayNotify(WPARAM wParam, LPARAM lParam)
 			GetCursorPos(&pt);
 
 			// show menu
-			m_mnuTrayMenu.GetSubMenu(0)->TrackPopupMenu(TPM_BOTTOMALIGN|TPM_LEFTBUTTON|TPM_RIGHTBUTTON, pt.x, pt.y, this);
-			m_mnuTrayMenu.GetSubMenu(0)->SetDefaultItem(m_nDefaultMenuItem,TRUE);
+			mmnuTrayMenu.GetSubMenu(0)->TrackPopupMenu(TPM_BOTTOMALIGN|TPM_LEFTBUTTON|TPM_RIGHTBUTTON, pt.x, pt.y, this);
+			mmnuTrayMenu.GetSubMenu(0)->SetDefaultItem(mnDefaultMenuItem,TRUE);
 			break;
 		case WM_RBUTTONDBLCLK:
 			//GetCursorPos(&pt);
@@ -326,15 +326,15 @@ LRESULT CDeployToolDlg::OnTrayNotify(WPARAM wParam, LPARAM lParam)
 
 void CDeployToolDlg::OnSysCommand(UINT nID, LPARAM lParam)
 {
-	if(m_bMinimizeToTray)
+	if(mbMinimizeToTray)
 	{
 		if ((nID & 0xFFF0) == SC_MINIMIZE)
 		{
 			if( TrayShow() )
 			{
 				this->ShowWindow(SW_HIDE);
-				m_pClientTab->ShowWindow(SW_HIDE);
-				m_pServerTab->ShowWindow(SW_HIDE);
+				mpClientTab->ShowWindow(SW_HIDE);
+				mpServerTab->ShowWindow(SW_HIDE);
 			}
 		}
 		else
@@ -346,26 +346,26 @@ void CDeployToolDlg::OnSysCommand(UINT nID, LPARAM lParam)
 
 void CDeployToolDlg::TraySetMinimizeToTray(BOOL bMinimizeToTray)
 {
-	m_bMinimizeToTray = bMinimizeToTray;
+	mbMinimizeToTray = bMinimizeToTray;
 }
 
 void CDeployToolDlg::OnTcnSelchangeTab(NMHDR *pNMHDR, LRESULT *pResult)
 {
-	int index = TabCtrl_GetCurSel( m_ctrlTAB.m_hWnd );
+	int index = TabCtrl_GetCurSel( mctrlTAB.m_hWnd );
 
 	switch (index) 
 	{
 		case 0:
 			// shutdown server
-			m_pServerTab->Shutdown();
+			mpServerTab->Shutdown();
 			// setup client
-			m_pClientTab->Startup();
+			mpClientTab->Startup();
 			break;
 		case 1:	
 			// shutdown client
-			m_pClientTab->Shutdown();
+			mpClientTab->Shutdown();
 			// setup server
-			m_pServerTab->Startup();
+			mpServerTab->Startup();
 			break;
 	}
 }

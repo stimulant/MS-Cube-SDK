@@ -5,9 +5,9 @@
 
 class DeployApp
 {
-	std::string m_appDirectory;
-	std::string m_appExecutable;
-	std::vector<DeployFile*> m_files;
+	std::string mappDirectory;
+	std::string mappExecutable;
+	std::vector<DeployFile*> mfiles;
 
 	bool AddDirectoryFiles(std::string rootDirectory, std::string directory);
 
