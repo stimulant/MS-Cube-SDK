@@ -2,6 +2,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DeployTool", "DeployTool.vcxproj", "{1D291A19-A2AE-4924-A503-B4AB7381E7A3}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Dummy", "Dummy\Dummy.vcxproj", "{0C001B89-27F5-4EC3-941F-A38E90D49CE7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -12,6 +14,9 @@ Global
 		{1D291A19-A2AE-4924-A503-B4AB7381E7A3}.Debug|Win32.Build.0 = Debug|Win32
 		{1D291A19-A2AE-4924-A503-B4AB7381E7A3}.Release|Win32.ActiveCfg = Release|Win32
 		{1D291A19-A2AE-4924-A503-B4AB7381E7A3}.Release|Win32.Build.0 = Release|Win32
+		{0C001B89-27F5-4EC3-941F-A38E90D49CE7}.Debug|Win32.ActiveCfg = Debug|Win32
+		{0C001B89-27F5-4EC3-941F-A38E90D49CE7}.Release|Win32.ActiveCfg = Release|Win32
+		{0C001B89-27F5-4EC3-941F-A38E90D49CE7}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

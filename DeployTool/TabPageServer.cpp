@@ -106,6 +106,7 @@ void CTabPageServer::ServerConnectThread()
 			// send files to client
 			DeployManager::instance()->SendToClient(hClientSocket);
 		}
+		Sleep(100);
 	}
 }
 

@@ -9,7 +9,7 @@ class DeployApp
 	std::string m_appExecutable;
 	std::vector<DeployFile*> m_files;
 
-	bool AddDirectoryFiles(std::string directory);
+	bool AddDirectoryFiles(std::string rootDirectory, std::string directory);
 
 public:
 	DeployApp(std::string appDirectory, std::string appExecutable);

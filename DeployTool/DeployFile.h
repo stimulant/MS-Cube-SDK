@@ -11,7 +11,7 @@ class DeployFile
 public:
 	DeployFile(std::string strFileName, std::string strPath, WIN32_FIND_DATA findData);
 	~DeployFile(void);
-	bool SendToClient(SOCKET hSocket);
+	bool SendToClient(std::string rootDirector, SOCKET hSocket);
 	static bool ReceiveFile(SOCKET hSocket);
 };
 

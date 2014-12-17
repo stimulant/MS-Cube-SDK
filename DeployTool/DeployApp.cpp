@@ -7,27 +7,23 @@ DeployApp::DeployApp(std::string appDirectory, std::string appExecutable)
 	m_appDirectory = appDirectory;
 	m_appExecutable = appExecutable;
 
-	AddDirectoryFiles(appDirectory);
+	AddDirectoryFiles(appDirectory, "");
 }
 
 DeployApp::~DeployApp(void)
 {
 }
 
-bool DeployApp::AddDirectoryFiles(std::string directory)
+bool DeployApp::AddDirectoryFiles(std::string rootDirectory, std::string directory)
 {
 	// go through directory and add files
 	WIN32_FIND_DATA ffd;
 	LARGE_INTEGER filesize;
-	//TCHAR szDir[MAX_PATH];
-
-   // Prepare string for use with FindFile functions.  First, copy the
-   // string to a buffer, then append '\*' to the directory name.
-   //StringCchCopy(szDir, MAX_PATH, argv[1]);
-   //StringCchCat(szDir, MAX_PATH, TEXT("\\*"));
-
+   
    // List all the files in the directory with some info about them.
-	std::string directoryName = directory + "\\*";
+	std::string directoryName = rootDirectory + "\\" + directory + "\\*";
+	if (directory == "")
+		directoryName = rootDirectory + "\\*";
 	HANDLE hFind = FindFirstFile(directoryName.c_str(), &ffd);
 	if (INVALID_HANDLE_VALUE == hFind) 
 		return false;
@@ -40,8 +36,10 @@ bool DeployApp::AddDirectoryFiles(std::string directory)
 				_tprintf(TEXT("  %s   <DIR>\n"), ffd.cFileName);
 
 				// iterate over directory files
-				directoryName = directory + "\\" + ffd.cFileName;
-				AddDirectoryFiles(directoryName);
+				std::string localDirectoryName = directory + "\\" + ffd.cFileName;
+				if (directory == "")
+					localDirectoryName = ffd.cFileName;
+				AddDirectoryFiles(rootDirectory, localDirectoryName);
 			}
 		}
 		else
@@ -65,7 +63,7 @@ bool DeployApp::SendToClient(SOCKET clientSocket)
 {
 	for (unsigned int i=0; i<m_files.size(); i++)
 	{
-		if (!m_files[i]->SendToClient(clientSocket))
+		if (!m_files[i]->SendToClient(m_appDirectory, clientSocket))
 			return false;
 	}
 	return true;

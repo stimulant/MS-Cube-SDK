@@ -97,33 +97,7 @@ void CTabPageClient::ClientThread()
 				closesocket(m_hSocket);
 				m_fConnected = false;
 			}
-
-			/*
-			//Check if it was for closing , and also read the incoming message
-			//recv does not place a null terminator at the end of the string (whilst printf %s assumes there is one).
-			int result = recv(m_hSocket, m_RecvBuffer, MAXRECV, 0);
-                 
-			if(result == SOCKET_ERROR || result == 0)
-			{
-				int error_code = WSAGetLastError();
-				if(error_code == WSAECONNRESET || result == 0)
-				{
-					DBOUT( "Host disconnected unexpectedly" << "" );
-				}
-				else
-				{
-					DBOUT( "Recv failed with error code:" << error_code );
-				}
-
-				//Close the socket and mark as 0 in list for reuse
-				closesocket(m_hSocket);
-				m_fConnected = false;
-			}
-			else
-			{
-				// parse command
-			}
-			*/
+			Sleep(100);
 		}
 	}
 }

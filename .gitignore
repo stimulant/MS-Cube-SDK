@@ -44,6 +44,9 @@ Samples/CinderSample/vc2012/Release
 DeployTool/Debug
 DeployTool/Release
 DeployTool/ipch
+DeployTool/Dummy/Debug
+DeployTool/Dummy/Release
+DeployTool/Dummy/ipch
 
 # Unity generated
 Samples/UnitySample/Temp
