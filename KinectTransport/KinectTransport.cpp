@@ -57,11 +57,26 @@ ULONGLONG			GetDllVersion(LPCTSTR lpszDllName);
 INT_PTR CALLBACK	DlgProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 
+#define APPLICATION_INSTANCE_MUTEX_NAME "{51B19E3A-3917-4810-9F4D-03E02B004260}"
+
 int APIENTRY _tWinMain(HINSTANCE hInstance,
                      HINSTANCE hPrevInstance,
                      LPTSTR    lpCmdLine,
                      int       nCmdShow)
 {
+	// Make sure at most one instance of the tool is running
+    HANDLE hMutexOneInstance(::CreateMutex( NULL, TRUE, APPLICATION_INSTANCE_MUTEX_NAME));
+    bool bAlreadyRunning((::GetLastError() == ERROR_ALREADY_EXISTS));
+    if (hMutexOneInstance == NULL || bAlreadyRunning)
+    {
+    	if (hMutexOneInstance)
+    	{
+    		::ReleaseMutex(hMutexOneInstance);
+    		::CloseHandle(hMutexOneInstance);
+    	}
+    	return 0;
+    }
+
 	MSG msg;
 	HACCEL hAccelTable;
 	hAppInstance = hInstance;

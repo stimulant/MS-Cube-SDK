@@ -24,11 +24,16 @@ void SocketHelper::StopWinsock()
 
 bool SocketHelper::ConnectToServer(SOCKET& hSocket, int PortNo, const char* IPAddress)
 {
-    // Setup socket address
-    SOCKADDR_IN target;
+	SOCKADDR_IN target;
     target.sin_family = AF_INET;
     target.sin_port = htons (PortNo);
-    target.sin_addr.s_addr = inet_addr(IPAddress);
+    
+	// try to resolve host name
+	struct hostent *he;
+	if ( (he = gethostbyname(IPAddress) ) != NULL )
+		memcpy(&target.sin_addr, he->h_addr_list[0], he->h_length);
+	else
+		target.sin_addr.s_addr = inet_addr(IPAddress);
 
 	// Create socket
     hSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
