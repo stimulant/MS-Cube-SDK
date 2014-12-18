@@ -25,10 +25,10 @@ class CinderSampleApp : public AppNative {
 	ULONG64 mTrackingIds[6];
 	std::map< JointType, std::array<float, 3> > mJointPositions[6];
 
-	uint8_t depthBuffer[KINECT_DEPTH_WIDTH * KINECT_DEPTH_HEIGHT];
-	Channel8u depthChannel;
+	uint16_t depthBuffer[KINECT_DEPTH_WIDTH * KINECT_DEPTH_HEIGHT];
+	Channel16u depthChannel;
 	gl::Texture depthTexture;
-
+	
 	// thread functions for handling sockets
 	void socketThreadFunc();
 	static void socketThreadFuncWrapper(void* o)
@@ -38,7 +38,9 @@ class CinderSampleApp : public AppNative {
 	void startSocketThread()
     {  
         _beginthread(&CinderSampleApp::socketThreadFuncWrapper, 0, static_cast<void*>(this));
-    }
+    }	
+
+	Channel8u channel16To8( const Channel16u& channel, uint8_t bytes = 4);
 
   public:
 	void setup();
@@ -113,7 +115,7 @@ void CinderSampleApp::setup()
 {
 	mConnected = false;
 	mRecvBuffer = new char[MAXRECV];
-	depthChannel = Channel(KINECT_DEPTH_WIDTH, KINECT_DEPTH_HEIGHT, KINECT_DEPTH_WIDTH, 1, depthBuffer);
+	depthChannel = Channel16u(KINECT_DEPTH_WIDTH, KINECT_DEPTH_HEIGHT, KINECT_DEPTH_WIDTH, 1, depthBuffer);
 	mBodyCount = 0;
 
 	// start thread to listen for socket
@@ -134,9 +136,9 @@ void CinderSampleApp::draw()
 	gl::clear(Color(0, 0, 0));
 
 	// draw depth
-	depthTexture = gl::Texture(depthChannel);
+	depthTexture = channel16To8( depthChannel );		
 	gl::draw(depthTexture, Rectf(0.0f, 0.0f, (float)app::getWindowWidth(), (float)app::getWindowHeight()));
-
+	
 	// draw bodies
 	for (int i=0; i<6; i++)
 	{
@@ -149,6 +151,22 @@ void CinderSampleApp::draw()
 					Vec2f((float)app::getWindowWidth()/2.0f, 0.0f), 5.0f);
 		}
 	}
+}
+
+Channel8u CinderSampleApp::channel16To8( const Channel16u& channel, uint8_t bytes )
+{
+	Channel8u channel8;
+	if ( channel ) {
+		channel8						= Channel8u( channel.getWidth(), channel.getHeight() );
+		Channel16u::ConstIter iter16	= channel.getIter();
+		Channel8u::Iter iter8			= channel8.getIter();
+		while ( iter8.line() && iter16.line() ) {
+			while ( iter8.pixel() && iter16.pixel() ) {
+				iter8.v()				= static_cast<uint8_t>( iter16.v() >> bytes );
+			}
+		}
+	}
+	return channel8;
 }
 
 CINDER_APP_NATIVE( CinderSampleApp, RendererGl )
