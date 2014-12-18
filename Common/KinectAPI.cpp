@@ -149,7 +149,7 @@ bool KinectAPI::BinaryToDepth(char* binary, char* depthBuffer, int& width, int& 
 	DepthUpdateHeader depthHeader = *(DepthUpdateHeader*)(binary);
 	width = depthHeader.width;
 	height = depthHeader.height;
-	memcpy(depthBuffer, binary + sizeof(DepthUpdateHeader), width * height);
+	memcpy(depthBuffer, binary + sizeof(DepthUpdateHeader), width * height * 2);
 	return true;
 }
 

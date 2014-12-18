@@ -10,7 +10,7 @@ using namespace ci;
 using namespace ci::app;
 using namespace std;
 
-#define MAXRECV 247815
+#define MAXRECV 495630
 
 #define KINECT_DEPTH_WIDTH 512
 #define KINECT_DEPTH_HEIGHT 424
@@ -40,7 +40,7 @@ class CinderSampleApp : public AppNative {
         _beginthread(&CinderSampleApp::socketThreadFuncWrapper, 0, static_cast<void*>(this));
     }	
 
-	Channel8u channel16To8( const Channel16u& channel, uint8_t bytes = 4);
+	Channel8u channel16To8( const Channel16u& channel, uint8_t bits = 0);
 
   public:
 	void setup();
@@ -115,7 +115,7 @@ void CinderSampleApp::setup()
 {
 	mConnected = false;
 	mRecvBuffer = new char[MAXRECV];
-	depthChannel = Channel16u(KINECT_DEPTH_WIDTH, KINECT_DEPTH_HEIGHT, KINECT_DEPTH_WIDTH, 1, depthBuffer);
+	depthChannel = Channel16u(KINECT_DEPTH_WIDTH, KINECT_DEPTH_HEIGHT, KINECT_DEPTH_WIDTH * 2, 1, depthBuffer);
 	mBodyCount = 0;
 
 	// start thread to listen for socket
@@ -153,7 +153,7 @@ void CinderSampleApp::draw()
 	}
 }
 
-Channel8u CinderSampleApp::channel16To8( const Channel16u& channel, uint8_t bytes )
+Channel8u CinderSampleApp::channel16To8( const Channel16u& channel, uint8_t bits )
 {
 	Channel8u channel8;
 	if ( channel ) {
@@ -162,7 +162,7 @@ Channel8u CinderSampleApp::channel16To8( const Channel16u& channel, uint8_t byte
 		Channel8u::Iter iter8			= channel8.getIter();
 		while ( iter8.line() && iter16.line() ) {
 			while ( iter8.pixel() && iter16.pixel() ) {
-				iter8.v()				= static_cast<uint8_t>( iter16.v() >> bytes );
+				iter8.v()				= static_cast<uint8_t>( iter16.v() >> bits );
 			}
 		}
 	}
