@@ -29,6 +29,8 @@
 #define IDC_BODIESENABLED4              1038
 #define IDC_DEPTHENABLED4               1039
 #define IDC_ENABLED4                    1040
+#define IDC_                            1041
+#define IDC_STARTONSTARTUP              1041
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
