@@ -94,11 +94,10 @@ STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP
 EXSTYLE WS_EX_CLIENTEDGE
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    PUSHBUTTON      "OK",IDOK,196,72,50,14
-    PUSHBUTTON      "Done",IDCANCEL,21,38,50,14,NOT WS_VISIBLE
-    LTEXT           "Country",IDC_STATIC,83,9,28,12
-    EDITTEXT        IDC_EDIT1,123,7,122,14,ES_AUTOHSCROLL
-    COMBOBOX        IDC_COMBO1,7,7,71,81,CBS_SIMPLE | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Remove App",IDC_REMOVEAPP,196,74,50,14
+    LTEXT           "Apps:",IDC_STATIC,7,7,28,12
+    LISTBOX         IDC_APPLIST,7,20,239,47,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Add App",IDC_ADDAPP,137,74,50,14
 END
 
 IDD_ABOUTBOX DIALOGEX 0, 0, 309, 176
@@ -201,33 +200,6 @@ IDR_MANIFEST            RT_MANIFEST             "res\\DeployTool.manifest"
 //
 
 IDB_BITMAP_INTRO        BITMAP                  "Images\\TabIntro.bmp"
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog Info
-//
-
-IDD_DIALOG_PAGE2 DLGINIT
-BEGIN
-    IDC_COMBO1, 0x403, 10, 0
-0x7253, 0x2069, 0x614c, 0x6b6e, 0x0061, 
-    IDC_COMBO1, 0x403, 6, 0
-0x6e49, 0x6964, 0x0061, 
-    IDC_COMBO1, 0x403, 9, 0
-0x6150, 0x696b, 0x7473, 0x6e61, "\000" 
-    IDC_COMBO1, 0x403, 8, 0
-0x6d41, 0x7265, 0x6369, 0x0061, 
-    IDC_COMBO1, 0x403, 8, 0
-0x6e45, 0x6c67, 0x6e61, 0x0064, 
-    IDC_COMBO1, 0x403, 6, 0
-0x614a, 0x6170, 0x006e, 
-    IDC_COMBO1, 0x403, 7, 0
-0x7246, 0x6e61, 0x6563, "\000" 
-    IDC_COMBO1, 0x403, 10, 0
-0x7541, 0x7473, 0x6172, 0x696c, 0x0061, 
-    0
-END
-
 
 /////////////////////////////////////////////////////////////////////////////
 //

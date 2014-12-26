@@ -41,16 +41,49 @@ void CTabPageServer::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CTabPageServer, CDialog)
-	ON_BN_CLICKED(IDOK, OnBnClickedOk)
+	ON_BN_CLICKED(IDC_ADDAPP, OnBnClickedAddApp)
+	ON_BN_CLICKED(IDC_REMOVEAPP, OnBnClickedRemoveApp)
 	ON_WM_SHOWWINDOW()
 END_MESSAGE_MAP()
 
 // CTabPageServer message handlers
 
-void CTabPageServer::OnBnClickedOk()
+void CTabPageServer::OnBnClickedAddApp()
 {
-	// TODO: Add your control notification handler code here
+	OPENFILENAME ofn;       // common dialog box structure
+	char szFile[260];       // buffer for file name
+	
+	// Initialize OPENFILENAME
+	ZeroMemory(&ofn, sizeof(ofn));
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = this->m_hWnd;
+	ofn.lpstrFile = szFile;
+	// Set lpstrFile[0] to '\0' so that GetOpenFileName does not 
+	// use the contents of szFile to initialize itself.
+	ofn.lpstrFile[0] = '\0';
+	ofn.nMaxFile = sizeof(szFile);
+	ofn.lpstrFilter = "All\0*.*\0Executable\0*.EXE\0";
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = NULL;
+	ofn.nMaxFileTitle = 0;
+	ofn.lpstrInitialDir = NULL;
+	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
+	// Display the Open dialog box. 
+	if (GetOpenFileName(&ofn)==TRUE)
+	{
+		DBOUT( "File: " << ofn.lpstrFile << "\n" );
+		this->SendDlgItemMessageA(IDC_APPLIST, LB_ADDSTRING, 0, (LPARAM)ofn.lpstrFile);
+	}
+}
+
+void CTabPageServer::OnBnClickedRemoveApp()
+{
+	// remove selected item
+	int buf[1];
+    int selection = this->SendDlgItemMessageA(IDC_APPLIST, LB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+	if (selection != LB_ERR)
+		this->SendDlgItemMessageA(IDC_APPLIST, LB_DELETESTRING, (WPARAM)selection, (LPARAM)0);
 }
 
 void CTabPageServer::OnShowWindow(BOOL bShow, UINT nStatus)

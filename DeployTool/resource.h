@@ -3,6 +3,7 @@
 // Used by DeployTool.rc
 //
 #define IDR_MANIFEST                    1
+#define IDC_ADDAPP                      2
 #define IDM_ABOUTBOX                    0x0010
 #define IDD_TAB_DIALOG                  102
 #define IDR_MAINFRAME                   128
@@ -17,8 +18,11 @@
 #define IDC_TAB                         1000
 #define IDC_CUSTOM1                     1002
 #define IDC_LIST1                       1003
+#define IDC_APPLIST                     1003
 #define IDC_EDIT1                       1004
 #define IDC_COMBO1                      1005
+#define IDC_                            1006
+#define IDC_REMOVEAPP                   1006
 #define ID__OPTIONS                     32771
 
 // Next default values for new objects
@@ -27,7 +31,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        138
 #define _APS_NEXT_COMMAND_VALUE         32772
-#define _APS_NEXT_CONTROL_VALUE         1006
+#define _APS_NEXT_CONTROL_VALUE         1007
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
