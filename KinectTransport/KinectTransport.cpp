@@ -107,6 +107,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			::TranslateMessage( &msg );
 			::DispatchMessage( &msg );
 		}
+
+		Sleep(10);
 	}
 
 	// close kinect
@@ -212,6 +214,8 @@ unsigned int __stdcall KinectThread(void* data)
 			if (pDepthFrame != NULL)
 				pDepthFrame->Release();
 		}
+
+		Sleep(10);
 	}
 
 	for (int i=0; i<4; i++)
