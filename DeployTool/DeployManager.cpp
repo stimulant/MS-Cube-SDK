@@ -28,6 +28,35 @@ void DeployManager::ServerUpdate()
 {
 }
 
+bool DeployManager::SendAppListToClient(SOCKET clientSocket)
+{
+	// SEND COMMAND
+	char command[32] = "LISTAPPS";
+	send(clientSocket, command, 32, 0);
+	char rec[32] = ""; 
+	if (recv(clientSocket, rec, 2, 0) <= 0)
+		return false;
+
+	// send app count
+	char appCountStr[10]; _ltoa((long)mApps.size(), appCountStr, 10);
+	send(clientSocket, appCountStr, 10, 0);
+	//DBOUT("SERVER: sent filesize: " << filesizeStr << "\n");
+	if (recv(clientSocket, rec, 2, 0) <= 0)
+		return false;
+	//DBOUT("SERVER: received filesize ack\n");
+
+	for(std::map<std::string, DeployApp*>::iterator iterator = mApps.begin(); iterator != mApps.end(); iterator++) 
+	{
+		// send app name
+		send(clientSocket, iterator->first.c_str(), 256, 0);
+		//DBOUT("SERVER: sent filename: " << iterator->first.c_str() << "\n");
+		if (recv(clientSocket, rec, 2, 0) <= 0)
+			return false;
+		//DBOUT("SERVER: received filename ack\n");
+	}
+	return true;
+}
+
 bool DeployManager::SendToClient(SOCKET clientSocket)
 {
 	for(std::map<std::string, DeployApp*>::iterator iterator = mApps.begin(); iterator != mApps.end(); iterator++) 

@@ -35,6 +35,14 @@ CTabPageClient::~CTabPageClient()
 {
 }
 
+BOOL CTabPageClient::OnInitDialog()
+{
+   CDialog::OnInitDialog();
+
+   SetDlgItemText(IDC_SERVER_EDIT, mStrDeployServer.c_str());
+   return TRUE;  // return TRUE unless you set the focus to a control 
+}
+
 void CTabPageClient::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
@@ -42,12 +50,20 @@ void CTabPageClient::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CTabPageClient, CDialog)
 	ON_WM_SHOWWINDOW()
+	ON_EN_CHANGE(IDC_SERVER_EDIT, OnChangeServerEdit)
 END_MESSAGE_MAP()
 
 // CTabPageClient message handlers
 
 void CTabPageClient::OnShowWindow(BOOL bShow, UINT nStatus)
 {
+}
+
+void CTabPageClient::OnChangeServerEdit()
+{
+	char serverHost[100];
+	GetDlgItemText(IDC_SERVER_EDIT, serverHost, 100);
+	mStrDeployServer = serverHost;
 }
 
 void CTabPageClient::Startup()
@@ -97,6 +113,28 @@ void CTabPageClient::ClientThread()
 			//DBOUT("CLIENT: received command: " << command << "\n");
 			send(mSocket, "OK", 2, 0);
 
+			if (strcmp(command, "LISTAPPS") == 0)
+			{
+				mAppNames.clear();
+
+				// receive app count
+				char rec[50] = "";
+				int recs = recv(mSocket, rec, 10, 0);
+				send(mSocket, "OK", 2, 0);
+				rec[recs] = '\0';
+				int appCount = atoi(rec);
+
+				// receive app names
+				for (int i=0; i<appCount; i++)
+				{
+					char appname[256] = "";
+					recv(mSocket, appname, 256, 0);
+					mAppNames.push_back(appname);
+					send(mSocket, "OK", 2, 0);
+
+					this->SendDlgItemMessage(IDC_COMBO_APPS, CB_ADDSTRING, 0, (LPARAM)appname);
+				}
+			}
 			if (strcmp(command, "SENDFILE") == 0)
 			{
 				// receive file

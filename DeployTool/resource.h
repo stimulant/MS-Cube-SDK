@@ -20,7 +20,9 @@
 #define IDC_LIST1                       1003
 #define IDC_APPLIST                     1003
 #define IDC_EDIT1                       1004
+#define IDC_SERVER_EDIT                 1004
 #define IDC_COMBO1                      1005
+#define IDC_COMBO_APPS                  1005
 #define IDC_                            1006
 #define IDC_REMOVEAPP                   1006
 #define ID__OPTIONS                     32771

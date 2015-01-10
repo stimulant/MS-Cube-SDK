@@ -80,7 +80,6 @@ void CTabPageServer::OnBnClickedAddApp()
 void CTabPageServer::OnBnClickedRemoveApp()
 {
 	// remove selected item
-	int buf[1];
     int selection = this->SendDlgItemMessageA(IDC_APPLIST, LB_GETCURSEL, (WPARAM)0, (LPARAM)0);
 	if (selection != LB_ERR)
 		this->SendDlgItemMessageA(IDC_APPLIST, LB_DELETESTRING, (WPARAM)selection, (LPARAM)0);
@@ -133,6 +132,9 @@ void CTabPageServer::ServerConnectThread()
 		if (SocketHelper::WaitForClient(mhServerSocket, hClientSocket))
 		{
 			mhClients.push_back(hClientSocket);
+
+			// send app list to client
+			DeployManager::instance()->SendAppListToClient(hClientSocket);
 
 			// send files to client
 			DeployManager::instance()->SendToClient(hClientSocket);

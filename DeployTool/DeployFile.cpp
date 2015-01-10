@@ -39,9 +39,6 @@ bool DeployFile::SendToClient(std::string rootDirector, SOCKET hSocket)
 		return false;
 
 	// send file name
-	char filename[256] = "";
-	strcpy(filename, mStrFileName.c_str());
-	filename[mStrFileName.length()] = '\0';
 	send(hSocket, mStrFileName.c_str(), 256, 0);
 	DBOUT("SERVER: sent filename: " << mStrFileName << "\n");
 	if (recv(hSocket, rec, 2, 0) <= 0)
