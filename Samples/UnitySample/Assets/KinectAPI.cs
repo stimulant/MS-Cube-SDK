@@ -7,9 +7,20 @@ using System.Text;
 using System.Collections;
 using System.Collections.Generic;
 
+public enum HandState
+{
+	HandState_Unknown	= 0,
+	HandState_NotTracked	= 1,
+	HandState_Open	= 2,
+	HandState_Closed	= 3,
+	HandState_Lasso	= 4
+};
+
 public class KinectBody
 {
     public IList<Vector3> Joints = new List<Vector3>();
+	public HandState LeftHandState;
+	public HandState RightHandState;
 }
 
 public class KinectAPI : MonoBehaviour
@@ -68,14 +79,17 @@ public class KinectAPI : MonoBehaviour
 
 	void ParseBodies()
 	{
-		Debug.Log("KinectAPI: Parsing bodies " + parseStream.Length);
+		//Debug.Log("KinectAPI: Parsing bodies " + parseStream.Length);
 		using (BinaryReader reader = new BinaryReader(parseStream, Encoding.Default))
 		{
 			// parse bodies
 			Bodies.Clear();
 			BodyCount = reader.ReadUInt16();
 			for (int i = 0; i < 6; i++)
-				TrackingIds[i] = reader.ReadUInt64();
+			{
+				UInt64 trackingId = reader.ReadUInt64();
+				TrackingIds[i] = trackingId;
+			}
 			
 			for (int b = 0; b < 6; b++)
 			{
@@ -90,15 +104,21 @@ public class KinectAPI : MonoBehaviour
 				}
 				Bodies.Add(body);
 			}
+
+			for (int b = 0; b < 6; b++)
+			{
+				Bodies[b].LeftHandState = (HandState)reader.ReadByte();
+				Bodies[b].RightHandState = (HandState)reader.ReadByte();
+			}
 		}
 	}
 
 	void ParseDepth()
 	{
+		//Debug.Log("KinectAPI: parsing depth " + parseStream.Length);
 		using (BinaryReader reader = new BinaryReader(parseStream, Encoding.Default))
 		{
 			// parse depth
-			//Debug.Log("KinectAPI: getting depth");
 			int width = reader.ReadUInt16();
 			int height = reader.ReadUInt16();
 			DepthData = reader.ReadBytes(512 * 424);

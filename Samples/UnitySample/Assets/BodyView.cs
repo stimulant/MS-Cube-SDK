@@ -53,7 +53,9 @@ public class BodyView : MonoBehaviour
         for (int i = 0; i < 6; i++)
         {
             if (kinectAPI.TrackingIds[i] != 0)
+			{
                 trackedIds.Add(kinectAPI.TrackingIds[i]);
+			}
         }
 
 		// First delete untracked bodies
@@ -120,6 +122,14 @@ public class BodyView : MonoBehaviour
 				lr.SetPosition(0, jointObj.localPosition);
 				lr.SetPosition(1, targetJoint.Value * 10.0f);
 				lr.SetColors(Color.red, Color.red);
+
+				Debug.Log (body.LeftHandState + ", " + body.RightHandState);
+				if (j == 7 && body.LeftHandState == HandState.HandState_Closed)
+					jointObj.localScale = new Vector3(2, 2, 2);
+				else if (j == 11 && body.RightHandState == HandState.HandState_Closed)
+					jointObj.localScale = new Vector3(2, 2, 2);
+				else
+					jointObj.localScale = new Vector3(0.3f, 0.3f, 0.3f);
 			}
 			else
 			{
