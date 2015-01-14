@@ -1,5 +1,6 @@
 #include "KinectAPI.h"
 
+/*
 void DebugOutput(const char* szFormat, ...)
 {
     char szBuff[1024];
@@ -9,7 +10,7 @@ void DebugOutput(const char* szFormat, ...)
     va_end(arg);
 
     OutputDebugString(szBuff);
-}
+}*/
 
 #pragma pack(push, 1) // exact fit - no padding
 struct BodiesUpdateHeader {
