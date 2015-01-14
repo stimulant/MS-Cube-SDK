@@ -43,7 +43,7 @@ KinectData::~KinectData(void)
 		mKinectSensor->Close();
 }
 
-bool KinectData::GetKinectBodies(UINT64* trackingIds, std::map< JointType, std::array<float, 3> > *jointPositions, int& bodyCount)
+bool KinectData::GetKinectBodies(UINT64* trackingIds, std::map< JointType, std::array<float, 3> > *jointPositions, std::pair<HandState, HandState> *handStates, int& bodyCount)
 {
 	DWORD dwResult = WaitForSingleObjectEx(reinterpret_cast<HANDLE>(mBodyFrameEvent), 0, FALSE);
     if (WAIT_OBJECT_0 != dwResult)
@@ -91,6 +91,9 @@ bool KinectData::GetKinectBodies(UINT64* trackingIds, std::map< JointType, std::
 										jointPositions[i][(JointType)j][2] = joints[j].Position.Z;
 									}
 								}
+
+								pBody->get_HandLeftState(&(handStates[i].first));
+								pBody->get_HandRightState(&(handStates[i].second));
 							}
 						}
 					}
