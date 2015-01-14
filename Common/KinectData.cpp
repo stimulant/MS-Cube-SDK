@@ -65,6 +65,7 @@ bool KinectData::GetKinectBodies(UINT64* trackingIds, std::map< JointType, std::
 			
 			for (int i = 0; i < BODY_COUNT; ++i)
 			{
+				trackingIds[i] = 0;
 				IBody* pBody = ppBodies[i];
 				if (pBody)
 				{

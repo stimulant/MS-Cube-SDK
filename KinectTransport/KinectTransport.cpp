@@ -172,8 +172,8 @@ unsigned int __stdcall KinectThread(void* data)
 			if (pKinectData->GetKinectBodies(trackingIds, jointPositions, handStates, bodyCount))
 			{
 				// turn bodies into a binary frame
-				char binary[1208];
-				int binarySize = KinectAPI::BodiesToBinary(trackingIds, jointPositions, bodyCount, binary);
+				char binary[5000];
+				int binarySize = KinectAPI::BodiesToBinary(trackingIds, jointPositions, handStates, bodyCount, binary);
 
 				// send data out the sockets
 				for (int i=0; i<4; i++)
