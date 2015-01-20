@@ -7,9 +7,20 @@ using System.Text;
 using System.Collections;
 using System.Collections.Generic;
 
+public enum HandState
+{
+	HandState_Unknown	= 0,
+	HandState_NotTracked	= 1,
+	HandState_Open	= 2,
+	HandState_Closed	= 3,
+	HandState_Lasso	= 4
+};
+
 public class KinectBody
 {
     public IList<Vector3> Joints = new List<Vector3>();
+	public HandState LeftHandState;
+	public HandState RightHandState;
 }
 
 public class KinectAPI : MonoBehaviour
@@ -46,6 +57,74 @@ public class KinectAPI : MonoBehaviour
         command = -1;
     }
 
+	int parseCommandId = -1;
+	MemoryStream parseStream = new MemoryStream(247815);
+	int parseDataOffset = 0;
+	int parseDataLength = 0;
+
+	void ResetParsing()
+	{
+		parseCommandId = -1;
+		parseStream = new MemoryStream (247815);
+		parseDataOffset = 0;
+		parseDataLength = 0;
+	}
+
+	void ParseCommand(BinaryReader reader)
+	{
+		parseCommandId = (int)reader.ReadByte();
+		parseDataLength = reader.ReadInt32();
+		//Debug.Log("KinectAPI: Command: " + parseCommandId + " length:" + parseDataLength);
+	}
+
+	void ParseBodies()
+	{
+		//Debug.Log("KinectAPI: Parsing bodies " + parseStream.Length);
+		using (BinaryReader reader = new BinaryReader(parseStream, Encoding.Default))
+		{
+			// parse bodies
+			Bodies.Clear();
+			BodyCount = reader.ReadUInt16();
+			for (int i = 0; i < 6; i++)
+			{
+				UInt64 trackingId = reader.ReadUInt64();
+				TrackingIds[i] = trackingId;
+			}
+			
+			for (int b = 0; b < 6; b++)
+			{
+				KinectBody body = new KinectBody();
+				for (int j = 0; j < 25; j++)
+				{
+					body.Joints.Add(
+						new Vector3(
+						reader.ReadSingle(),
+						reader.ReadSingle(),
+						reader.ReadSingle()));
+				}
+				Bodies.Add(body);
+			}
+
+			for (int b = 0; b < 6; b++)
+			{
+				Bodies[b].LeftHandState = (HandState)reader.ReadByte();
+				Bodies[b].RightHandState = (HandState)reader.ReadByte();
+			}
+		}
+	}
+
+	void ParseDepth()
+	{
+		//Debug.Log("KinectAPI: parsing depth " + parseStream.Length);
+		using (BinaryReader reader = new BinaryReader(parseStream, Encoding.Default))
+		{
+			// parse depth
+			int width = reader.ReadUInt16();
+			int height = reader.ReadUInt16();
+			DepthData = reader.ReadBytes(512 * 424);
+		}
+	}
+
     // Update is called once per frame
     void Update()
     {
@@ -58,6 +137,9 @@ public class KinectAPI : MonoBehaviour
             client = server.AcceptTcpClient();
             Debug.Log("KinectAPI: Connected!");
             connected = true;
+
+			// reset parse state
+			ResetParsing();
         }
 
         if (connected)
@@ -66,52 +148,54 @@ public class KinectAPI : MonoBehaviour
             NetworkStream stream = client.GetStream();
 
             // Loop to receive all the data sent by the client. 
-            int bytesRead = stream.Read(bytes, 0, bytes.Length);
-            if (bytesRead != 0)
+            int dataLeft = stream.Read(bytes, 0, bytes.Length);
+			if (dataLeft != 0)
             {
                 // parse out command and length
                 using (MemoryStream ms = new MemoryStream(bytes))
                 {
-                    /*you can change Encoding.Default if bytes is in other Encoding format!*/
-                    using (BinaryReader reader = new BinaryReader(ms, Encoding.Default))
-                    {
-                        int command = (int)reader.ReadByte();
-                        UInt32 length = reader.ReadUInt32();
-                        //Debug.Log("KinectAPI: Command: " + command + " length:" + length + " bytes read: " + bytesRead);
+					using (BinaryReader reader = new BinaryReader(ms, Encoding.Default))
+					{
+						while (dataLeft > 0)
+						{                    
+							// parse out command if we don't have one
+							if (parseCommandId == -1)
+							{
+								try
+								{
+									ParseCommand(reader);
+									dataLeft -= 5;
+								}
+								catch(Exception e)
+								{
+									Debug.LogException(e);
+								}
+							}
 
-                        // parse commands
-                        if (command == 0)
-                        {
-                            // parse bodies
-                            Bodies.Clear();
-                            BodyCount = reader.ReadUInt16();
-                            for (int i = 0; i < 6; i++)
-                                TrackingIds[i] = reader.ReadUInt64();
+							if (parseCommandId != -1 && dataLeft > 0)
+							{
+								// write bytes to our parsestream
+								//Debug.Log("KinectAPI: Copying data");
+								var copyLength = Math.Min(parseDataLength - parseDataOffset, dataLeft);
+								parseStream.Write(reader.ReadBytes(copyLength), 0, copyLength);
+								dataLeft -= copyLength;
+								parseDataOffset += copyLength;
 
-                            for (int b = 0; b < 6; b++)
-                            {
-                                KinectBody body = new KinectBody();
-                                for (int j = 0; j < 25; j++)
-                                {
-                                    body.Joints.Add(
-                                        new Vector3(
-                                            reader.ReadSingle(),
-                                            reader.ReadSingle(),
-                                            reader.ReadSingle()));
-                                }
-                                Bodies.Add(body);
-                            }
-                        }
-                        else if (command == 1)
-                        {
-                            // parse depth
-                            //Debug.Log("KinectAPI: getting depth");
-                            int width = reader.ReadUInt16();
-                            int height = reader.ReadUInt16();
-                            DepthData = reader.ReadBytes(512 * 424);
-                        }
-                    }
-                }
+								if (parseDataOffset >= parseDataLength-1) 
+								{
+									parseStream.Position = 0;
+									//Debug.Log("KinectAPI: do command: " + parseCommandId);
+									if (parseCommandId == 0)
+										ParseBodies();
+									else if (parseCommandId == 1)
+										ParseDepth();
+
+									ResetParsing();
+								}
+							}
+	                    }
+	                }
+				}
             }
             else
             {

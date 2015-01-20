@@ -85,6 +85,8 @@ BEGIN
     CONTROL         "Depth Enabled",IDC_DEPTHENABLED4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,234,174,62,10
     CONTROL         "Enabled",IDC_ENABLED4,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,23,166,41,10
     GROUPBOX        "Host4",IDC_STATIC,16,150,283,42
+    CONTROL         "Start Kinect Transport on Startup",IDC_STARTONSTARTUP,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,24,200,126,10
 END
 
 

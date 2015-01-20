@@ -41,6 +41,7 @@ std::string		strConnectedHost[4];
 bool			fHostEnabled[4];
 bool			fSendDepthData[4];
 bool			fSendBodiesData[4];
+bool			fStartAppOnStartup;
 
 // Kinect
 KinectData *pKinectData;
@@ -106,6 +107,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 			::TranslateMessage( &msg );
 			::DispatchMessage( &msg );
 		}
+
+		Sleep(10);
 	}
 
 	// close kinect
@@ -122,6 +125,7 @@ unsigned int __stdcall KinectThread(void* data)
 	int bodyCount = 0;
 	ULONG64 trackingIds[6] = {0};
 	static std::map< JointType, std::array<float, 3> > jointPositions[6];
+	static std::pair< HandState, HandState > handStates[6];
 
 	while (!fShouldDisconnectKinect)
 	{
@@ -165,11 +169,11 @@ unsigned int __stdcall KinectThread(void* data)
 		if (getBodies)
 		{
 			bodyCount = 0;
-			if (pKinectData->GetKinectBodies(trackingIds, jointPositions, bodyCount))
+			if (pKinectData->GetKinectBodies(trackingIds, jointPositions, handStates, bodyCount))
 			{
 				// turn bodies into a binary frame
-				char binary[1208];
-				int binarySize = KinectAPI::BodiesToBinary(trackingIds, jointPositions, bodyCount, binary);
+				char binary[5000];
+				int binarySize = KinectAPI::BodiesToBinary(trackingIds, jointPositions, handStates, bodyCount, binary);
 
 				// send data out the sockets
 				for (int i=0; i<4; i++)
@@ -211,6 +215,8 @@ unsigned int __stdcall KinectThread(void* data)
 			if (pDepthFrame != NULL)
 				pDepthFrame->Release();
 		}
+
+		Sleep(10);
 	}
 
 	for (int i=0; i<4; i++)
@@ -263,6 +269,14 @@ bool LoadFromRegistry()
 	}
 
 	RegCloseKey(hKey);
+
+	// check to see if startup key exists
+	lRes = RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Run", 0, KEY_READ, &hKey);
+	if (lRes != ERROR_SUCCESS)
+		return false;
+	fStartAppOnStartup = RegistryHelper::GetStringRegValue(hKey, "KinectTransport", strValue, "");
+	RegCloseKey(hKey);
+	
 	return true;
 }
 
@@ -301,6 +315,22 @@ bool SaveToRegistry()
 	}
 
 	RegCloseKey(hKey);
+
+	// check to see if startup key exists
+	lRes = RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Run", 0, KEY_READ | KEY_SET_VALUE, &hKey);
+	if (lRes != ERROR_SUCCESS)
+		return false;
+	if (fStartAppOnStartup)
+	{
+		char myPath[512];
+		GetModuleFileName(NULL, myPath, 512);
+		std::string strApplicationPath = myPath;
+		lRes = RegSetValueEx(hKey, "KinectTransport", 0, REG_SZ, (unsigned char*)strApplicationPath.c_str(), strApplicationPath.length() * sizeof(TCHAR));
+	}
+	else
+		lRes = RegDeleteValue(hKey, "KinectTransport");
+	RegCloseKey(hKey);
+
 	return true;
 }
 
@@ -482,6 +512,7 @@ INT_PTR CALLBACK DlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					changed |= (wmId == bodiesEnabledControls[i]);
 					changed |= (wmId == depthEnabledControls[i]);
 				}
+				changed |= (wmId == IDC_STARTONSTARTUP);
 					
 				if (changed)
 				{
@@ -495,6 +526,7 @@ INT_PTR CALLBACK DlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 						fSendBodiesData[i] = (IsDlgButtonChecked(hWnd, bodiesEnabledControls[i]) == 1);
 						fSendDepthData[i] = (IsDlgButtonChecked(hWnd, depthEnabledControls[i]) == 1);
 					}
+					fStartAppOnStartup = (IsDlgButtonChecked(hWnd, IDC_STARTONSTARTUP) == 1);
 					SaveToRegistry();
 				}
 				break;
@@ -509,7 +541,9 @@ INT_PTR CALLBACK DlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				CheckDlgButton(hWnd, enabledControls[i], fHostEnabled[i] ? 1 : 0);
 				CheckDlgButton(hWnd, bodiesEnabledControls[i], fSendBodiesData[i] ? 1 : 0);
 				CheckDlgButton(hWnd, depthEnabledControls[i], fSendDepthData[i] ? 1 : 0);
+				
 			}
+			CheckDlgButton(hWnd, IDC_STARTONSTARTUP, fStartAppOnStartup ? 1 : 0);
 			ShowWindow(hWnd, SW_RESTORE);
 			break;
 		case IDOK:
@@ -523,6 +557,7 @@ INT_PTR CALLBACK DlgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				fSendBodiesData[i] = (IsDlgButtonChecked(hWnd, bodiesEnabledControls[i]) == 1);
 				fSendDepthData[i] = (IsDlgButtonChecked(hWnd, depthEnabledControls[i]) == 1);
 			}
+			fStartAppOnStartup = (IsDlgButtonChecked(hWnd, IDC_STARTONSTARTUP) == 1);
 			SaveToRegistry();
 			break;
 		case SWM_EXIT:

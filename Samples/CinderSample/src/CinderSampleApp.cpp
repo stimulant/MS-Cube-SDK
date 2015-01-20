@@ -24,6 +24,7 @@ class CinderSampleApp : public AppNative {
 	int mBodyCount;
 	ULONG64 mTrackingIds[6];
 	std::map< JointType, std::array<float, 3> > mJointPositions[6];
+	std::pair< HandState, HandState> mHandStates[6];
 
 	uint8_t depthBuffer[KINECT_DEPTH_WIDTH * KINECT_DEPTH_HEIGHT];
 	Channel8u depthChannel;
@@ -93,7 +94,7 @@ void CinderSampleApp::socketThreadFunc()
 				{
 					case BodiesCommand:
 						{
-							KinectAPI::BinaryToBodies(mRecvBuffer, mTrackingIds, mJointPositions, mBodyCount);
+							KinectAPI::BinaryToBodies(mRecvBuffer, mTrackingIds, mJointPositions, mHandStates, mBodyCount);
 						}
 						break;
 					case DepthCommand:
