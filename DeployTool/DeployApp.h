@@ -15,6 +15,8 @@ public:
 	DeployApp(std::string appDirectory, std::string appExecutable);
 	~DeployApp(void);
 
+	bool IsAppSelected(SOCKET clientSocket);
+	bool Update(SOCKET clientSocket);
 	bool SendToClient(SOCKET clientSocket);
 	std::string GetAppDirectory() const { return mAppDirectory; }
 	std::string GetAppExecutable() const { return mAppExecutable; }

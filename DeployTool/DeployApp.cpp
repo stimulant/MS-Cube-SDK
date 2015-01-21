@@ -59,6 +59,45 @@ bool DeployApp::AddDirectoryFiles(std::string rootDirectory, std::string directo
 	return true;
 }
 
+bool DeployApp::IsAppSelected(SOCKET clientSocket)
+{
+	// send command
+	char command[32] = "ISAPPSELECTED";
+	send(clientSocket, command, 32, 0);
+	char rec[32] = ""; 
+	if (recv(clientSocket, rec, 2, 0) <= 0)
+		return false;
+
+	// send executable name
+	char executableName[128] = "";
+	strcpy(executableName, mAppExecutable.c_str());
+	executableName[mAppExecutable.length()] = '\0';
+	send(clientSocket, executableName, 128, 0);
+	if (recv(clientSocket, rec, 2, 0) <= 0)
+		return false;
+	
+	return (strcmp(rec, "YS") == 0);
+}
+
+bool DeployApp::Update(SOCKET clientSocket)
+{
+	for (unsigned int i=0; i<mfiles.size(); i++)
+	{
+		// check if the app needs an update of this file
+		if (!mfiles[i]->AskIfNeedsUpdate(mAppDirectory, clientSocket))
+			continue;
+
+		// send the file if so
+		if (!mfiles[i]->SendToClient(mAppDirectory, clientSocket))
+			return false;
+		Sleep(100);
+	}
+
+	// start the app here if all done
+
+	return true;
+}
+
 bool DeployApp::SendToClient(SOCKET clientSocket)
 {
 	for (unsigned int i=0; i<mfiles.size(); i++)

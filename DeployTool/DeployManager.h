@@ -23,6 +23,7 @@ public:
 	void AddDeployApp(std::string appDirectory, std::string appExecutable);
 	void ServerUpdate();
 	bool SendAppListToClient(SOCKET clientSocket);
+	bool CheckAppsOnClient(SOCKET clientSocket);
 	bool SendToClient(SOCKET clientSocket);
 	bool StartApp(SOCKET clientSocket, std::string appExecutable);
 };

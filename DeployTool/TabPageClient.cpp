@@ -113,6 +113,27 @@ void CTabPageClient::ClientThread()
 			//DBOUT("CLIENT: received command: " << command << "\n");
 			send(mSocket, "OK", 2, 0);
 
+			if (strcmp(command, "ISAPPSELECTED") == 0)
+			{
+				// receive app name
+				char appname[256] = "";
+				recv(mSocket, appname, 256, 0);
+
+				// send back YS if this app name is selected
+				int curSel = this->SendDlgItemMessage(IDC_COMBO_APPS, CB_GETCURSEL, 0, 0);
+				if (curSel == -1)
+					send(mSocket, "NO", 2, 0);
+				else
+				{
+					char pFilename[_MAX_PATH];
+					this->SendDlgItemMessage(IDC_COMBO_APPS, CB_GETLBTEXT, curSel, (LPARAM)pFilename);
+
+					if (strcmp(pFilename, appname) == 0)
+						send(mSocket, "YS", 2, 0);
+					else
+						send(mSocket, "NO", 2, 0);
+				}
+			}
 			if (strcmp(command, "LISTAPPS") == 0)
 			{
 				mAppNames.clear();
@@ -133,6 +154,15 @@ void CTabPageClient::ClientThread()
 					send(mSocket, "OK", 2, 0);
 
 					this->SendDlgItemMessage(IDC_COMBO_APPS, CB_ADDSTRING, 0, (LPARAM)appname);
+				}
+			}
+			if (strcmp(command, "DOESFILENEEDUPDATE") == 0)
+			{
+				// check if a file needs an update
+				if (!DeployFile::DoesFileNeedUpdate(mSocket))
+				{
+					closesocket(mSocket);
+					mConnected = false;
 				}
 			}
 			if (strcmp(command, "SENDFILE") == 0)

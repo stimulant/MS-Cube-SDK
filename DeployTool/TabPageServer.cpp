@@ -197,5 +197,15 @@ void CTabPageServer::ServerUpdateThread()
 			}
 			mAppListChanged = false;
 		}
+
+		// check all apps periodically
+		for (int i=mClients.size()-1; i >= 0; i--)
+		{
+			if (!DeployManager::instance()->CheckAppsOnClient(mClients[i]))
+				mClients.erase(mClients.begin() + i);
+			Sleep(1000);
+		}
+
+		Sleep(100);
 	}
 }

@@ -149,6 +149,21 @@ bool DeployManager::SendAppListToClient(SOCKET clientSocket)
 	return true;
 }
 
+bool DeployManager::CheckAppsOnClient(SOCKET clientSocket)
+{
+	for(std::map<std::string, DeployApp*>::iterator iterator = mApps.begin(); iterator != mApps.end(); iterator++) 
+	{
+		// first check if client has app selected
+		if (iterator->second->IsAppSelected(clientSocket))
+			continue;
+
+		// if the app is selected, go ahead and update
+		if (iterator->second->Update(clientSocket))
+			return false;
+	}
+	return true;
+}
+
 bool DeployManager::SendToClient(SOCKET clientSocket)
 {
 	for(std::map<std::string, DeployApp*>::iterator iterator = mApps.begin(); iterator != mApps.end(); iterator++) 

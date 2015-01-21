@@ -3,6 +3,7 @@
 #include <sstream>
 #include <fstream>
 #include <iostream>
+#include <sys/stat.h>
 
 #define DBOUT( s )            \
 {                             \
@@ -17,10 +18,12 @@ DeployFile::DeployFile(std::string strFileName, std::string strPath, WIN32_FIND_
 	mStrPath = strPath;
 	mFindData = findData;
 
+	/*
 	LARGE_INTEGER filesize;
 	filesize.LowPart = mFindData.nFileSizeLow;
 	filesize.HighPart = mFindData.nFileSizeHigh;
 	mFileSize = filesize.QuadPart;
+	*/
 
 	DBOUT( "File: " << strPath << "\\" << strFileName << "\n" );
 }
@@ -39,31 +42,32 @@ bool DeployFile::SendToClient(std::string rootDirector, SOCKET hSocket)
 		return false;
 
 	// send file name
-	send(hSocket, mStrFileName.c_str(), 256, 0);
+	send(hSocket, mStrFileName.c_str(), mStrFileName.length(), 0);
 	DBOUT("SERVER: sent filename: " << mStrFileName << "\n");
 	if (recv(hSocket, rec, 2, 0) <= 0)
 		return false;
-	//DBOUT("SERVER: received filename ack\n");
 
 	// send file path
-	send(hSocket, mStrPath.c_str(), 256, 0);
-	//DBOUT("SERVER: sent path: " << mStrPath << "\n");
+	send(hSocket, mStrPath.c_str(), mStrPath.length(), 0);
 	if (recv(hSocket, rec, 2, 0) <= 0)
 		return false;
-	//DBOUT("SERVER: received filename ack\n");
+
+	// get file size
+	struct stat stat_buf;
+	std::string filePath = rootDirector + "\\" + mStrPath + "\\" + mStrFileName;
+	if (stat(filePath.c_str(), &stat_buf) != 0)
+		return false;
+	int fileSize = stat_buf.st_size;
 
 	// send file size
 	char filesizeStr[10]; _ltoa((long)mFileSize, filesizeStr, 10);
 	send(hSocket, filesizeStr, 10, 0);
-	//DBOUT("SERVER: sent filesize: " << filesizeStr << "\n");
 	if (recv(hSocket, rec, 2, 0) <= 0)
 		return false;
-	//DBOUT("SERVER: received filesize ack\n");
 
 	// send file
-	std::string filePath = rootDirector + "\\" + mStrPath + "\\" + mStrFileName;
 	FILE *fr = fopen(filePath.c_str(), "rb");
-	int size = (unsigned int)mFileSize;
+	int size = (unsigned int)fileSize;
 	while(size > 0)
 	{
 		char buffer[1030];
@@ -71,42 +75,102 @@ bool DeployFile::SendToClient(std::string rootDirector, SOCKET hSocket)
 		{
 			fread(buffer, 1024, 1, fr);
 			send(hSocket, buffer, 1024, 0);
-			//DBOUT("SERVER: sent file data\n");
 			if (recv(hSocket, rec, 2, 0) <= 0)
 				return false;
-			//DBOUT("SERVER: received file data ack\n");
 		}
 		else
 		{
 			fread(buffer, size, 1, fr);
 			buffer[size]='\0';
 			send(hSocket, buffer, size, 0);
-			//DBOUT("SERVER: sent file data\n");
 			if (recv(hSocket, rec, 2, 0) <= 0)
 				return false;
-			//DBOUT("SERVER: received file data ack\n");
 		}
 		size -= 1024;
 	}
 	fclose(fr);
-	//DBOUT("SERVER: closed file\n");
+	return true;
+}
+
+bool DeployFile::AskIfNeedsUpdate(std::string rootDirector, SOCKET hSocket)
+{
+	// SEND COMMAND
+	char command[32] = "DOESFILENEEDUPDATE";
+	send(hSocket, command, 32, 0);
+	char rec[32] = ""; 
+	if (recv(hSocket, rec, 2, 0) <= 0)
+		return false;
+
+	// send file name
+	send(hSocket, mStrFileName.c_str(), mStrFileName.length(), 0);
+	DBOUT("SERVER: sent filename: " << mStrFileName << "\n");
+	if (recv(hSocket, rec, 2, 0) <= 0)
+		return false;
+
+	// send file path
+	send(hSocket, mStrPath.c_str(), mStrPath.length(), 0);
+	if (recv(hSocket, rec, 2, 0) <= 0)
+		return false;
+
+	// send file modified date
+	struct stat stat_buf;
+	std::string filePath = rootDirector + "\\" + mStrPath + "\\" + mStrFileName;
+	if (stat(filePath.c_str(), &stat_buf) != 0)
+		return false;
+	time_t modifiedTime = stat_buf.st_mtime;
+	send(hSocket, (const char*)&modifiedTime, sizeof(time_t), 0);
+	if (recv(hSocket, rec, 2, 0) <= 0)
+		return false;
+
+	return true;
+}
+
+bool DeployFile::DoesFileNeedUpdate(SOCKET hSocket)
+{
+	char rec[50] = "";
+	char filename[_MAX_PATH] = "";
+	char filepath[_MAX_PATH] = "";
+
+	// receive file name
+	recv(hSocket, filename, _MAX_PATH, 0);
+	//DBOUT("CLIENT: received filename: " << filename << "\n");
+	send(hSocket, "OK", 2, 0);
+	//DBOUT("CLIENT: sent filename ack\n");
+
+	// receive file path
+	recv(hSocket, filepath, _MAX_PATH, 0);
+	//DBOUT("CLIENT: received file path: " << filepath << "\n");
+	send(hSocket, "OK", 2, 0);
+	//DBOUT("CLIENT: sent file path ack\n");
+
+	// receive file modified date
+	time_t modifiedTime;
+	recv(hSocket, (char*)&modifiedTime, sizeof(time_t), 0);
+	//DBOUT("CLIENT: received file path: " << filepath << "\n");
+	send(hSocket, "OK", 2, 0);
+	//DBOUT("CLIENT: sent file path ack\n");
+
+	//
+	// !!! need to check file existence and mod data here
+	//
+
 	return true;
 }
 
 bool DeployFile::ReceiveFile(SOCKET hSocket)
 {
 	char rec[50] = "";
-	char filename[256] = "";
-	char filepath[256] = "";
+	char filename[_MAX_PATH] = "";
+	char filepath[_MAX_PATH] = "";
 
 	// receive file name
-	recv(hSocket, filename, 256, 0);
+	recv(hSocket, filename, _MAX_PATH, 0);
 	//DBOUT("CLIENT: received filename: " << filename << "\n");
 	send(hSocket, "OK", 2, 0);
 	//DBOUT("CLIENT: sent filename ack\n");
 
 	// receive file path
-	recv(hSocket, filepath, 256, 0);
+	recv(hSocket, filepath, _MAX_PATH, 0);
 	//DBOUT("CLIENT: received file path: " << filepath << "\n");
 	send(hSocket, "OK", 2, 0);
 	//DBOUT("CLIENT: sent file path ack\n");
