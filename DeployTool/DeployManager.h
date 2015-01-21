@@ -15,6 +15,11 @@ public:
 	~DeployManager(void);
 
 	static DeployManager* instance();
+
+	bool LoadFromRegistry();
+	bool SaveToRegistry();
+
+	std::map<std::string, DeployApp*>& GetApps() { return mApps; }
 	void AddDeployApp(std::string appDirectory, std::string appExecutable);
 	void ServerUpdate();
 	bool SendAppListToClient(SOCKET clientSocket);

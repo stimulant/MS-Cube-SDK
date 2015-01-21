@@ -29,10 +29,31 @@ CTabPageServer::CTabPageServer(CWnd* pParent /*=NULL*/)
 	mRecvBuffer = new char[MAXRECV];
 	mSendBuffer = new char[MAXRECV];
 	mDeployPort = 5000;
+	mAppListChanged = false;
 }
 
 CTabPageServer::~CTabPageServer()
 {
+}
+
+BOOL CTabPageServer::OnInitDialog()
+{
+   CDialog::OnInitDialog();
+
+   // try to load from registry, if we cannot try to save (in order to create key
+	if (!DeployManager::instance()->LoadFromRegistry())
+		DeployManager::instance()->SaveToRegistry();
+
+	// add pre-existing apps to list
+	for(std::map<std::string, DeployApp*>::iterator iterator = DeployManager::instance()->GetApps().begin(); iterator != DeployManager::instance()->GetApps().end(); iterator++) 
+	{
+		std::string fileName = iterator->first;
+		this->SendDlgItemMessageA(IDC_APPLIST, LB_ADDSTRING, 0, (LPARAM)fileName.c_str());
+	}
+
+	mAppListChanged = true;
+
+   return TRUE;  // return TRUE unless you set the focus to a control 
 }
 
 void CTabPageServer::DoDataExchange(CDataExchange* pDX)
@@ -72,8 +93,17 @@ void CTabPageServer::OnBnClickedAddApp()
 	// Display the Open dialog box. 
 	if (GetOpenFileName(&ofn)==TRUE)
 	{
-		DBOUT( "File: " << ofn.lpstrFile << "\n" );
-		this->SendDlgItemMessageA(IDC_APPLIST, LB_ADDSTRING, 0, (LPARAM)ofn.lpstrFile);
+		DBOUT( "File: " << ofn.lpstrFile << "\n" );		
+		
+		// create first app
+		char path[MAX_PATH], file[MAX_PATH];
+		strcpy(path, ofn.lpstrFile); strcpy(file, ofn.lpstrFile);
+		PathRemoveFileSpec(path);
+		PathStripPath(file);
+		this->SendDlgItemMessageA(IDC_APPLIST, LB_ADDSTRING, 0, (LPARAM)file);
+		DeployManager::instance()->AddDeployApp(path, file);
+		DeployManager::instance()->SaveToRegistry();
+		mAppListChanged = true;
 	}
 }
 
@@ -94,7 +124,7 @@ void CTabPageServer::Startup()
 	mfExitThread = false;
 
 	// startup server thread
-	SocketHelper::CreateServerSocket(mhServerSocket, mDeployPort);
+	SocketHelper::CreateServerSocket(mServerSocket, mDeployPort);
 
 	// start thread to connect to clients
 	HANDLE ServerConnectThreadHandle = (HANDLE)_beginthreadex(0, 0, &ServerConnectThread_wrapper, this, 0, 0);
@@ -105,7 +135,7 @@ void CTabPageServer::Startup()
 	SetThreadPriority(ServerUpdateThreadHandle, THREAD_PRIORITY_NORMAL);
 
 	// create DeployManager and create test app
-	DeployManager::instance()->AddDeployApp("C:\\Users\\joel\\Desktop\\12_9_2014", "render_test.exe");
+	//DeployManager::instance()->AddDeployApp("C:\\Users\\joel\\Desktop\\12_9_2014", "render_test.exe");
 }
 
 void CTabPageServer::Shutdown()
@@ -113,7 +143,7 @@ void CTabPageServer::Shutdown()
 	mfExitThread = true;
 
 	// Close the socket and mark as 0 in list for reuse
-	closesocket(mhServerSocket);
+	closesocket(mServerSocket);
 }
 
 unsigned int __stdcall ServerConnectThread_wrapper(void* data)
@@ -129,18 +159,19 @@ void CTabPageServer::ServerConnectThread()
 		SOCKET hClientSocket;
 
 		// listen for clients
-		if (SocketHelper::WaitForClient(mhServerSocket, hClientSocket))
+		if (SocketHelper::WaitForClient(mServerSocket, hClientSocket))
 		{
-			mhClients.push_back(hClientSocket);
+			mClients.push_back(hClientSocket);
 
 			// send app list to client
-			DeployManager::instance()->SendAppListToClient(hClientSocket);
+			//DeployManager::instance()->SendAppListToClient(hClientSocket);
 
 			// send files to client
-			DeployManager::instance()->SendToClient(hClientSocket);
+			//DeployManager::instance()->SendToClient(hClientSocket);
 
 			// start up the app
-			DeployManager::instance()->StartApp(hClientSocket, "render_test.exe");
+			//DeployManager::instance()->StartApp(hClientSocket, "render_test.exe");
+			mAppListChanged = true;
 		}
 		Sleep(100);
 	}
@@ -156,6 +187,15 @@ void CTabPageServer::ServerUpdateThread()
 {
 	while (!mfExitThread)
 	{
-		// update clients
+		// update client app lists
+		if (mAppListChanged)
+		{
+			for (int i=mClients.size()-1; i >= 0; i--)
+			{
+				if (!DeployManager::instance()->SendAppListToClient(mClients[i]))
+					mClients.erase(mClients.begin() + i);
+			}
+			mAppListChanged = false;
+		}
 	}
 }

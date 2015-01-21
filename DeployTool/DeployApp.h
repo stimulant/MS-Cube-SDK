@@ -5,8 +5,8 @@
 
 class DeployApp
 {
-	std::string mappDirectory;
-	std::string mappExecutable;
+	std::string mAppDirectory;
+	std::string mAppExecutable;
 	std::vector<DeployFile*> mfiles;
 
 	bool AddDirectoryFiles(std::string rootDirectory, std::string directory);
@@ -16,5 +16,7 @@ public:
 	~DeployApp(void);
 
 	bool SendToClient(SOCKET clientSocket);
+	std::string GetAppDirectory() const { return mAppDirectory; }
+	std::string GetAppExecutable() const { return mAppExecutable; }
 };
 

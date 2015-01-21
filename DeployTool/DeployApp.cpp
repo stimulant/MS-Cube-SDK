@@ -4,8 +4,8 @@
 
 DeployApp::DeployApp(std::string appDirectory, std::string appExecutable)
 {
-	mappDirectory = appDirectory;
-	mappExecutable = appExecutable;
+	mAppDirectory = appDirectory;
+	mAppExecutable = appExecutable;
 
 	AddDirectoryFiles(appDirectory, "");
 }
@@ -63,7 +63,7 @@ bool DeployApp::SendToClient(SOCKET clientSocket)
 {
 	for (unsigned int i=0; i<mfiles.size(); i++)
 	{
-		if (!mfiles[i]->SendToClient(mappDirectory, clientSocket))
+		if (!mfiles[i]->SendToClient(mAppDirectory, clientSocket))
 			return false;
 	}
 	return true;

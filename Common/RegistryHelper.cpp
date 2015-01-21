@@ -19,8 +19,25 @@ bool RegistryHelper::GetBoolRegValue(HKEY hKey, const std::string &strValueName,
     return (ERROR_SUCCESS == nError);
 }
 
+bool RegistryHelper::GetIntRegValue(HKEY hKey, const std::string &strValueName, int &iValue, int iDefaultValue)
+{
+    DWORD nDefValue(iDefaultValue);
+    DWORD nResult(nDefValue);
+	DWORD dwBufferSize(sizeof(DWORD));
+    LONG nError = ::RegQueryValueEx(hKey,
+        strValueName.c_str(),
+        0,
+        NULL,
+        reinterpret_cast<LPBYTE>(&nResult),
+        &dwBufferSize);
+    if (ERROR_SUCCESS == nError)
+    {
+        iValue = nResult;
+    }
+    return (ERROR_SUCCESS == nError);
+}
 
-LONG RegistryHelper::GetStringRegValue(HKEY hKey, const std::string &strValueName, std::string &strValue, const std::string &strDefaultValue)
+bool RegistryHelper::GetStringRegValue(HKEY hKey, const std::string &strValueName, std::string &strValue, const std::string &strDefaultValue)
 {
     strValue = strDefaultValue;
     CHAR szBuffer[512];
