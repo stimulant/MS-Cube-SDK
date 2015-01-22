@@ -22,9 +22,9 @@ public:
 	std::map<std::string, DeployApp*>& GetApps() { return mApps; }
 	void AddDeployApp(std::string appDirectory, std::string appExecutable);
 	void ServerUpdate();
-	bool SendAppListToClient(SOCKET clientSocket);
-	bool CheckAppsOnClient(SOCKET clientSocket);
-	bool SendToClient(SOCKET clientSocket);
+	bool ServerSendAppListToClient(SOCKET clientSocket);
+	bool ServerCheckAppsOnClient(SOCKET clientSocket);
+	bool ServerSendToClient(SOCKET clientSocket);
 	bool StartApp(SOCKET clientSocket, std::string appExecutable);
 };
 

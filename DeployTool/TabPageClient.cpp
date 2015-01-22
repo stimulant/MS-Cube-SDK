@@ -159,7 +159,7 @@ void CTabPageClient::ClientThread()
 			if (strcmp(command, "DOESFILENEEDUPDATE") == 0)
 			{
 				// check if a file needs an update
-				if (!DeployFile::DoesFileNeedUpdate(mSocket))
+				if (!DeployFile::ClientDoesFileNeedUpdate(mSocket))
 				{
 					closesocket(mSocket);
 					mConnected = false;
@@ -168,7 +168,7 @@ void CTabPageClient::ClientThread()
 			if (strcmp(command, "SENDFILE") == 0)
 			{
 				// receive file
-				if (!DeployFile::ReceiveFile(mSocket))
+				if (!DeployFile::ClientReceiveFile(mSocket))
 				{
 					closesocket(mSocket);
 					mConnected = false;

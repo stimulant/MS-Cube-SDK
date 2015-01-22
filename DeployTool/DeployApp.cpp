@@ -59,7 +59,7 @@ bool DeployApp::AddDirectoryFiles(std::string rootDirectory, std::string directo
 	return true;
 }
 
-bool DeployApp::IsAppSelected(SOCKET clientSocket)
+bool DeployApp::ServerIsAppSelected(SOCKET clientSocket)
 {
 	// send command
 	char command[32] = "ISAPPSELECTED";
@@ -79,17 +79,21 @@ bool DeployApp::IsAppSelected(SOCKET clientSocket)
 	return (strcmp(rec, "YS") == 0);
 }
 
-bool DeployApp::Update(SOCKET clientSocket)
+bool DeployApp::ServerUpdate(SOCKET clientSocket)
 {
 	for (unsigned int i=0; i<mfiles.size(); i++)
 	{
 		// check if the app needs an update of this file
-		if (!mfiles[i]->AskIfNeedsUpdate(mAppDirectory, clientSocket))
+		bool doesNeedUpdate = false;
+		if (!mfiles[i]->ServerAskIfNeedsUpdate(mAppDirectory, clientSocket, doesNeedUpdate))
 			continue;
 
 		// send the file if so
-		if (!mfiles[i]->SendToClient(mAppDirectory, clientSocket))
-			return false;
+		if (doesNeedUpdate)
+		{
+			if (!mfiles[i]->ServerSendToClient(mAppDirectory, clientSocket))
+				return false;
+		}
 		Sleep(100);
 	}
 
@@ -98,11 +102,11 @@ bool DeployApp::Update(SOCKET clientSocket)
 	return true;
 }
 
-bool DeployApp::SendToClient(SOCKET clientSocket)
+bool DeployApp::ServerSendToClient(SOCKET clientSocket)
 {
 	for (unsigned int i=0; i<mfiles.size(); i++)
 	{
-		if (!mfiles[i]->SendToClient(mAppDirectory, clientSocket))
+		if (!mfiles[i]->ServerSendToClient(mAppDirectory, clientSocket))
 			return false;
 	}
 	return true;

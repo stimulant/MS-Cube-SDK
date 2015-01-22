@@ -18,13 +18,6 @@ DeployFile::DeployFile(std::string strFileName, std::string strPath, WIN32_FIND_
 	mStrPath = strPath;
 	mFindData = findData;
 
-	/*
-	LARGE_INTEGER filesize;
-	filesize.LowPart = mFindData.nFileSizeLow;
-	filesize.HighPart = mFindData.nFileSizeHigh;
-	mFileSize = filesize.QuadPart;
-	*/
-
 	DBOUT( "File: " << strPath << "\\" << strFileName << "\n" );
 }
 
@@ -32,8 +25,10 @@ DeployFile::~DeployFile(void)
 {
 }
 
-bool DeployFile::SendToClient(std::string rootDirector, SOCKET hSocket)
+bool DeployFile::ServerSendToClient(std::string rootDirector, SOCKET hSocket)
 {
+	DBOUT("SERVER: start sending file: " << mStrFileName << "\n");
+
 	// SEND COMMAND
 	char command[32] = "SENDFILE";
 	send(hSocket, command, 32, 0);
@@ -43,12 +38,14 @@ bool DeployFile::SendToClient(std::string rootDirector, SOCKET hSocket)
 
 	// send file name
 	send(hSocket, mStrFileName.c_str(), mStrFileName.length(), 0);
-	DBOUT("SERVER: sent filename: " << mStrFileName << "\n");
 	if (recv(hSocket, rec, 2, 0) <= 0)
 		return false;
 
 	// send file path
-	send(hSocket, mStrPath.c_str(), mStrPath.length(), 0);
+	std::string adjustedFilePath = mStrPath;
+	if (adjustedFilePath == "")
+		adjustedFilePath = ".\\";
+	send(hSocket, adjustedFilePath.c_str(), adjustedFilePath.length(), 0);
 	if (recv(hSocket, rec, 2, 0) <= 0)
 		return false;
 
@@ -60,7 +57,7 @@ bool DeployFile::SendToClient(std::string rootDirector, SOCKET hSocket)
 	int fileSize = stat_buf.st_size;
 
 	// send file size
-	char filesizeStr[10]; _ltoa((long)mFileSize, filesizeStr, 10);
+	char filesizeStr[10]; _ltoa((long)fileSize, filesizeStr, 10);
 	send(hSocket, filesizeStr, 10, 0);
 	if (recv(hSocket, rec, 2, 0) <= 0)
 		return false;
@@ -89,10 +86,12 @@ bool DeployFile::SendToClient(std::string rootDirector, SOCKET hSocket)
 		size -= 1024;
 	}
 	fclose(fr);
+
+	DBOUT("SERVER: finished sending file: " << mStrFileName << "\n");
 	return true;
 }
 
-bool DeployFile::AskIfNeedsUpdate(std::string rootDirector, SOCKET hSocket)
+bool DeployFile::ServerAskIfNeedsUpdate(std::string rootDirector, SOCKET hSocket, bool& doesNeedUpdate)
 {
 	// SEND COMMAND
 	char command[32] = "DOESFILENEEDUPDATE";
@@ -103,12 +102,14 @@ bool DeployFile::AskIfNeedsUpdate(std::string rootDirector, SOCKET hSocket)
 
 	// send file name
 	send(hSocket, mStrFileName.c_str(), mStrFileName.length(), 0);
-	DBOUT("SERVER: sent filename: " << mStrFileName << "\n");
 	if (recv(hSocket, rec, 2, 0) <= 0)
 		return false;
 
 	// send file path
-	send(hSocket, mStrPath.c_str(), mStrPath.length(), 0);
+	std::string adjustedFilePath = mStrPath;
+	if (adjustedFilePath == "")
+		adjustedFilePath = ".\\";
+	send(hSocket, adjustedFilePath.c_str(), adjustedFilePath.length(), 0);
 	if (recv(hSocket, rec, 2, 0) <= 0)
 		return false;
 
@@ -121,11 +122,15 @@ bool DeployFile::AskIfNeedsUpdate(std::string rootDirector, SOCKET hSocket)
 	send(hSocket, (const char*)&modifiedTime, sizeof(time_t), 0);
 	if (recv(hSocket, rec, 2, 0) <= 0)
 		return false;
+	
+	doesNeedUpdate = (strcmp(rec, "YS") == 0);
+	if (doesNeedUpdate)
+		DBOUT("SERVER: filename: " << mStrFileName << " needs update" << "\n");
 
 	return true;
 }
 
-bool DeployFile::DoesFileNeedUpdate(SOCKET hSocket)
+bool DeployFile::ClientDoesFileNeedUpdate(SOCKET hSocket)
 {
 	char rec[50] = "";
 	char filename[_MAX_PATH] = "";
@@ -133,31 +138,41 @@ bool DeployFile::DoesFileNeedUpdate(SOCKET hSocket)
 
 	// receive file name
 	recv(hSocket, filename, _MAX_PATH, 0);
-	//DBOUT("CLIENT: received filename: " << filename << "\n");
 	send(hSocket, "OK", 2, 0);
-	//DBOUT("CLIENT: sent filename ack\n");
 
 	// receive file path
 	recv(hSocket, filepath, _MAX_PATH, 0);
-	//DBOUT("CLIENT: received file path: " << filepath << "\n");
 	send(hSocket, "OK", 2, 0);
-	//DBOUT("CLIENT: sent file path ack\n");
 
 	// receive file modified date
-	time_t modifiedTime;
-	recv(hSocket, (char*)&modifiedTime, sizeof(time_t), 0);
-	//DBOUT("CLIENT: received file path: " << filepath << "\n");
-	send(hSocket, "OK", 2, 0);
-	//DBOUT("CLIENT: sent file path ack\n");
+	time_t serverModifiedTime;
+	recv(hSocket, (char*)&serverModifiedTime, sizeof(time_t), 0);
+	
+	//
+	bool fileNeedsUpdating = false;
+	std::string fullFilePathStr = filepath;
+	if (fullFilePathStr != "")
+		fullFilePathStr += "\\";
+	fullFilePathStr += filename;
+	struct stat stat_buf;
+	if (stat(fullFilePathStr.c_str(), &stat_buf) != 0)
+		fileNeedsUpdating = true;
+	else
+	{
+		time_t clientModifiedTime = stat_buf.st_mtime;
+		double diffTime = difftime(clientModifiedTime, serverModifiedTime);
+		fileNeedsUpdating = (diffTime < 0.0);
+	}
 
-	//
-	// !!! need to check file existence and mod data here
-	//
+	if (fileNeedsUpdating)
+		send(hSocket, "YS", 2, 0);
+	else
+		send(hSocket, "NO", 2, 0);
 
 	return true;
 }
 
-bool DeployFile::ReceiveFile(SOCKET hSocket)
+bool DeployFile::ClientReceiveFile(SOCKET hSocket)
 {
 	char rec[50] = "";
 	char filename[_MAX_PATH] = "";
@@ -165,21 +180,15 @@ bool DeployFile::ReceiveFile(SOCKET hSocket)
 
 	// receive file name
 	recv(hSocket, filename, _MAX_PATH, 0);
-	//DBOUT("CLIENT: received filename: " << filename << "\n");
 	send(hSocket, "OK", 2, 0);
-	//DBOUT("CLIENT: sent filename ack\n");
 
 	// receive file path
 	recv(hSocket, filepath, _MAX_PATH, 0);
-	//DBOUT("CLIENT: received file path: " << filepath << "\n");
 	send(hSocket, "OK", 2, 0);
-	//DBOUT("CLIENT: sent file path ack\n");
 
 	// receive file size
 	int recs = recv(hSocket, rec, 10, 0);
-	//DBOUT("CLIENT: received filesize: " << rec << "\n");
 	send(hSocket, "OK", 2, 0);
-	//DBOUT("CLIENT: sent filesize ack\n");
 	rec[recs] = '\0';
 	int size = atoi(rec);
 
@@ -204,17 +213,13 @@ bool DeployFile::ReceiveFile(SOCKET hSocket)
 		if(size>=1024)
 		{
 			recv(hSocket, buffer, 1024, 0);
-			//DBOUT("CLIENT: received file data\n");
 			send(hSocket, "OK", 2, 0);
-			//DBOUT("CLIENT: sent file data ack\n");
 			fwrite(buffer, 1024, 1, fw);
 		}
 		else
 		{
 			recv(hSocket, buffer, size, 0);
-			//DBOUT("CLIENT: received file data\n");
 			send(hSocket, "OK", 2, 0);
-			//DBOUT("CLIENT: sent file data ack\n");
 			buffer[size] = '\0';
 			fwrite(buffer, size, 1, fw);
 		}
@@ -222,6 +227,6 @@ bool DeployFile::ReceiveFile(SOCKET hSocket)
 	}
 
 	fclose(fw);
-	//DBOUT("CLIENT: closed file\n");
+	DBOUT("CLIENT: received file: " << filename << "\n");
 	return true;
 }

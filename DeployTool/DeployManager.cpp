@@ -120,7 +120,7 @@ void DeployManager::ServerUpdate()
 {
 }
 
-bool DeployManager::SendAppListToClient(SOCKET clientSocket)
+bool DeployManager::ServerSendAppListToClient(SOCKET clientSocket)
 {
 	// SEND COMMAND
 	char command[32] = "LISTAPPS";
@@ -149,26 +149,26 @@ bool DeployManager::SendAppListToClient(SOCKET clientSocket)
 	return true;
 }
 
-bool DeployManager::CheckAppsOnClient(SOCKET clientSocket)
+bool DeployManager::ServerCheckAppsOnClient(SOCKET clientSocket)
 {
 	for(std::map<std::string, DeployApp*>::iterator iterator = mApps.begin(); iterator != mApps.end(); iterator++) 
 	{
 		// first check if client has app selected
-		if (iterator->second->IsAppSelected(clientSocket))
+		if (iterator->second->ServerIsAppSelected(clientSocket))
 			continue;
 
 		// if the app is selected, go ahead and update
-		if (iterator->second->Update(clientSocket))
+		if (!iterator->second->ServerUpdate(clientSocket))
 			return false;
 	}
 	return true;
 }
 
-bool DeployManager::SendToClient(SOCKET clientSocket)
+bool DeployManager::ServerSendToClient(SOCKET clientSocket)
 {
 	for(std::map<std::string, DeployApp*>::iterator iterator = mApps.begin(); iterator != mApps.end(); iterator++) 
 	{
-		if (!iterator->second->SendToClient(clientSocket))
+		if (!iterator->second->ServerSendToClient(clientSocket))
 			return false;
 	}
 	return true;

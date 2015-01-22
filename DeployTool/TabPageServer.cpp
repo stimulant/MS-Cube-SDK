@@ -164,10 +164,10 @@ void CTabPageServer::ServerConnectThread()
 			mClients.push_back(hClientSocket);
 
 			// send app list to client
-			//DeployManager::instance()->SendAppListToClient(hClientSocket);
+			//DeployManager::instance()->ServerSendAppListToClient(hClientSocket);
 
 			// send files to client
-			//DeployManager::instance()->SendToClient(hClientSocket);
+			//DeployManager::instance()->ServerSendToClient(hClientSocket);
 
 			// start up the app
 			//DeployManager::instance()->StartApp(hClientSocket, "render_test.exe");
@@ -192,7 +192,7 @@ void CTabPageServer::ServerUpdateThread()
 		{
 			for (int i=mClients.size()-1; i >= 0; i--)
 			{
-				if (!DeployManager::instance()->SendAppListToClient(mClients[i]))
+				if (!DeployManager::instance()->ServerSendAppListToClient(mClients[i]))
 					mClients.erase(mClients.begin() + i);
 			}
 			mAppListChanged = false;
@@ -201,11 +201,11 @@ void CTabPageServer::ServerUpdateThread()
 		// check all apps periodically
 		for (int i=mClients.size()-1; i >= 0; i--)
 		{
-			if (!DeployManager::instance()->CheckAppsOnClient(mClients[i]))
+			if (!DeployManager::instance()->ServerCheckAppsOnClient(mClients[i]))
 				mClients.erase(mClients.begin() + i);
-			Sleep(1000);
+			Sleep(100);
 		}
 
-		Sleep(100);
+		Sleep(1000);
 	}
 }
