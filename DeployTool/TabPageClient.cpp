@@ -2,11 +2,16 @@
 //
 
 #include "stdafx.h"
+#include <windows.h>
+#include <process.h>
+#include <Tlhelp32.h>
+#include <winbase.h>
+#include <string.h>
+#include <sstream>
 #include "DeployTool.h"
 #include "TabPageClient.h"
 #include "SocketHelper.h"
 #include "DeployFile.h"
-#include <sstream>
 
 #define MAXRECV 247815
 
@@ -88,6 +93,29 @@ unsigned int __stdcall ClientThread_wrapper(void* data)
 {
     static_cast<CTabPageClient*>(data)->ClientThread();
 	return 0;
+}
+
+void killProcessByName(const char *filename)
+{
+    HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPALL, NULL);
+    PROCESSENTRY32 pEntry;
+    pEntry.dwSize = sizeof (pEntry);
+    BOOL hRes = Process32First(hSnapShot, &pEntry);
+    while (hRes)
+    {
+        if (strcmp(pEntry.szExeFile, filename) == 0)
+        {
+            HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, 0,
+                                          (DWORD) pEntry.th32ProcessID);
+            if (hProcess != NULL)
+            {
+                TerminateProcess(hProcess, 9);
+                CloseHandle(hProcess);
+            }
+        }
+        hRes = Process32Next(hSnapShot, &pEntry);
+    }
+    CloseHandle(hSnapShot);
 }
 
 void CTabPageClient::ClientThread()
@@ -174,6 +202,21 @@ void CTabPageClient::ClientThread()
 					mConnected = false;
 				}
 			}
+			if (strcmp(command, "KILLAPP") == 0)
+			{
+				// receive appName name
+				char appName[MAX_PATH] = "";
+				recv(mSocket, appName, MAX_PATH, 0);
+				DBOUT("CLIENT: starting app: " << appName << "\n");
+				send(mSocket, "OK", 2, 0);
+
+				// receive executable name
+				char executableName[MAX_PATH] = "";
+				recv(mSocket, executableName, MAX_PATH, 0);
+				send(mSocket, "OK", 2, 0);
+
+				killProcessByName(executableName);
+			}
 			if (strcmp(command, "STARTAPP") == 0)
 			{
 				// receive appName name
@@ -195,7 +238,7 @@ void CTabPageClient::ClientThread()
 				STARTUPINFO info={sizeof(info)};
 				PROCESS_INFORMATION processInfo;
 				LPSTR s = const_cast<char *>(appPath.c_str());
-				CreateProcess(appName, s, NULL, NULL, TRUE, 0, NULL, NULL, &info, &processInfo);
+				CreateProcess(s, s, NULL, NULL, TRUE, 0, NULL, NULL, &info, &processInfo);
 				/*
 				if (CreateProcess(path, cmd, NULL, NULL, TRUE, 0, NULL, NULL, &info, &processInfo))
 				{

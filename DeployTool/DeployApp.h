@@ -18,6 +18,7 @@ public:
 
 	bool ServerIsAppSelected(SOCKET clientSocket);
 	bool ServerUpdate(SOCKET clientSocket);
+	bool ServerKillApp(SOCKET clientSocket);
 	bool ServerStartApp(SOCKET clientSocket);
 	std::string GetAppName() const { return mAppName; }
 	std::string GetAppDirectory() const { return mAppDirectory; }

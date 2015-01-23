@@ -163,9 +163,6 @@ bool DeployManager::ServerCheckAppsOnClient(SOCKET clientSocket)
 		// if the app is selected, go ahead and update
 		if (!iterator->second->ServerUpdate(clientSocket))
 			return false;
-
-		// then start it up!
-		//DeployManager::instance()->StartApp(hClientSocket, "render_test.exe");
 	}
 	return true;
 }

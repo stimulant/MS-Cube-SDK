@@ -84,6 +84,8 @@ bool DeployApp::ServerUpdate(SOCKET clientSocket)
 	mFiles.clear();
 	AddDirectoryFiles(mAppDirectory, "");
 
+	bool appKilled = false;
+	bool appUpdated = false;
 	for (unsigned int i=0; i<mFiles.size(); i++)
 	{
 		// check if the app needs an update of this file
@@ -94,13 +96,43 @@ bool DeployApp::ServerUpdate(SOCKET clientSocket)
 		// send the file if so
 		if (doesNeedUpdate)
 		{
+			if (!appKilled)
+			{
+				ServerKillApp(clientSocket);
+				appKilled = true;
+			}
+			appUpdated = true;
 			if (!mFiles[i]->ServerSendToClient(mAppName, mAppDirectory, clientSocket))
 				return false;
 		}
 		Sleep(100);
 	}
 
-	// start the app here if all done
+	// then start it up!
+	if (appUpdated)
+		ServerStartApp(clientSocket);
+
+	return true;
+}
+
+bool DeployApp::ServerKillApp(SOCKET clientSocket)
+{
+	// send command
+	char command[32] = "KILLAPP";
+	send(clientSocket, command, 32, 0);
+	char rec[32] = ""; 
+	if (recv(clientSocket, rec, 2, 0) <= 0)
+		return false;
+
+	// send app name
+	send(clientSocket, mAppName.c_str(), mAppName.length(), 0);
+	if (recv(clientSocket, rec, 2, 0) <= 0)
+		return false;
+
+	// send executable name
+	send(clientSocket, mAppExecutable.c_str(), mAppExecutable.length(), 0);
+	if (recv(clientSocket, rec, 2, 0) <= 0)
+		return false;
 
 	return true;
 }
