@@ -104,12 +104,12 @@ public class BodyView : MonoBehaviour
 	{
 		for (int j=0; j<25; j++)
 		{
-			Vector3 sourceJoint = body.Joints[j];
+			Vector3 sourceJoint = body.JointPositions[j];
 			Vector3? targetJoint = null;
 
 			if(_BoneMap.ContainsKey(j))
 			{
-				targetJoint = body.Joints[_BoneMap[j]];
+				targetJoint = body.JointPositions[_BoneMap[j]];
 			}
 			
 			Transform jointObj = bodyObject.transform.FindChild("jt" + j);

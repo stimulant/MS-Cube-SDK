@@ -18,7 +18,8 @@ public enum HandState
 
 public class KinectBody
 {
-    public IList<Vector3> Joints = new List<Vector3>();
+    public IList<Vector3> JointPositions = new List<Vector3>();
+	public IList<Vector3> JointOrientations = new List<Vector3>();
 	public HandState LeftHandState;
 	public HandState RightHandState;
 }
@@ -90,13 +91,14 @@ public class KinectAPI : MonoBehaviour
 				UInt64 trackingId = reader.ReadUInt64();
 				TrackingIds[i] = trackingId;
 			}
-			
+
+			// read in joint positions
 			for (int b = 0; b < 6; b++)
 			{
 				KinectBody body = new KinectBody();
 				for (int j = 0; j < 25; j++)
 				{
-					body.Joints.Add(
+					body.JointPositions.Add(
 						new Vector3(
 						reader.ReadSingle(),
 						reader.ReadSingle(),
@@ -105,10 +107,25 @@ public class KinectAPI : MonoBehaviour
 				Bodies.Add(body);
 			}
 
+			// read in hand states
 			for (int b = 0; b < 6; b++)
 			{
 				Bodies[b].LeftHandState = (HandState)reader.ReadByte();
 				Bodies[b].RightHandState = (HandState)reader.ReadByte();
+			}
+
+			// read in joint orientations
+			for (int b = 0; b < 6; b++)
+			{
+				for (int j = 0; j < 25; j++)
+				{
+					Bodies[b].JointOrientations.Add(
+						new Vector4(
+						reader.ReadSingle(),
+						reader.ReadSingle(),
+						reader.ReadSingle(),
+						reader.ReadSingle()));
+				}
 			}
 		}
 	}
