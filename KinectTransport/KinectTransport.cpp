@@ -125,6 +125,7 @@ unsigned int __stdcall KinectThread(void* data)
 	int bodyCount = 0;
 	ULONG64 trackingIds[6] = {0};
 	static std::map< JointType, std::array<float, 3> > jointPositions[6];
+	static std::map< JointType, std::array<float, 4> > jointOrientations[6];
 	static std::pair< HandState, HandState > handStates[6];
 
 	while (!fShouldDisconnectKinect)
@@ -169,11 +170,11 @@ unsigned int __stdcall KinectThread(void* data)
 		if (getBodies)
 		{
 			bodyCount = 0;
-			if (pKinectData->GetKinectBodies(trackingIds, jointPositions, handStates, bodyCount))
+			if (pKinectData->GetKinectBodies(trackingIds, jointPositions, jointOrientations, handStates, bodyCount))
 			{
 				// turn bodies into a binary frame
 				char binary[5000];
-				int binarySize = KinectAPI::BodiesToBinary(trackingIds, jointPositions, handStates, bodyCount, binary);
+				int binarySize = KinectAPI::BodiesToBinary(trackingIds, jointPositions, jointOrientations, handStates, bodyCount, binary);
 
 				// send data out the sockets
 				for (int i=0; i<4; i++)

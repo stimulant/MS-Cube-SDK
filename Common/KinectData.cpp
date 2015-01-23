@@ -43,7 +43,7 @@ KinectData::~KinectData(void)
 		mKinectSensor->Close();
 }
 
-bool KinectData::GetKinectBodies(UINT64* trackingIds, std::map< JointType, std::array<float, 3> > *jointPositions, std::pair<HandState, HandState> *handStates, int& bodyCount)
+bool KinectData::GetKinectBodies(UINT64* trackingIds, std::map< JointType, std::array<float, 3> > *jointPositions, std::map< JointType, std::array<float, 4> > *jointOrientations, std::pair<HandState, HandState> *handStates, int& bodyCount)
 {
 	DWORD dwResult = WaitForSingleObjectEx(reinterpret_cast<HANDLE>(mBodyFrameEvent), 0, FALSE);
     if (WAIT_OBJECT_0 != dwResult)
@@ -93,8 +93,23 @@ bool KinectData::GetKinectBodies(UINT64* trackingIds, std::map< JointType, std::
 									}
 								}
 
+								// get hand states
 								pBody->get_HandLeftState(&(handStates[i].first));
 								pBody->get_HandRightState(&(handStates[i].second));
+
+								// get joint orientations
+								JointOrientation jointO[JointType_Count];
+								if (SUCCEEDED(pBody->GetJointOrientations(_countof(jointO), jointO)))
+								{
+									for (int j = 0; j < _countof(jointO); ++j)
+									{
+										jointOrientations[i][(JointType)j][0] = jointO[j].Orientation.x;
+										jointOrientations[i][(JointType)j][1] = jointO[j].Orientation.y;
+										jointOrientations[i][(JointType)j][2] = jointO[j].Orientation.z;
+										jointOrientations[i][(JointType)j][3] = jointO[j].Orientation.w;
+									}
+								}
+								
 							}
 						}
 					}

@@ -20,6 +20,6 @@ public:
 	~KinectData();
 
 	bool GetKinectDepth(IDepthFrame** ppDepthFrame, int& nWidth, int& nHeight, UINT16 *&pBuffer, USHORT& nMinDepth, USHORT& nMaxDepth);
-	bool GetKinectBodies(UINT64* trackingIds, std::map< JointType, std::array<float, 3> > *jointPositions, std::pair<HandState, HandState> *handStates, int& bodyCount);
+	bool GetKinectBodies(UINT64* trackingIds, std::map< JointType, std::array<float, 3> > *jointPositions, std::map< JointType, std::array<float, 4> > *jointOrientations, std::pair<HandState, HandState> *handStates, int& bodyCount);
 };
 
