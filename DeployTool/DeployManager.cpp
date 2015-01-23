@@ -37,7 +37,10 @@ bool DeployManager::LoadFromRegistry()
 
 	for (int i=0; i<appCount; i++)
 	{
-		std::string appDirectory, appExecutable;
+		std::string appName, appDirectory, appExecutable;
+		keyName = "AppName" + i;
+		if (!RegistryHelper::GetStringRegValue(hKey, keyName.c_str(), appName, ""))
+			return false;
 		keyName = "AppDirectory" + i;
 		if (!RegistryHelper::GetStringRegValue(hKey, keyName.c_str(), appDirectory, ""))
 			return false;
@@ -45,7 +48,7 @@ bool DeployManager::LoadFromRegistry()
 		if (!RegistryHelper::GetStringRegValue(hKey, keyName.c_str(), appExecutable, ""))
 			return false;
 		
-		AddDeployApp(appDirectory, appExecutable);
+		AddDeployApp(appName, appDirectory, appExecutable);
 	}
 
 	RegCloseKey(hKey);
@@ -83,6 +86,9 @@ bool DeployManager::SaveToRegistry()
 	{
 		std::string keyName;
 
+		keyName = "AppName" + i;
+		lRes = RegSetValueEx(hKey, keyName.c_str(), 0, REG_SZ, (unsigned char*)iterator->second->GetAppName().c_str(), iterator->second->GetAppName().length() * sizeof(TCHAR));
+
 		keyName = "AppDirectory" + i;
 		lRes = RegSetValueEx(hKey, keyName.c_str(), 0, REG_SZ, (unsigned char*)iterator->second->GetAppDirectory().c_str(), iterator->second->GetAppDirectory().length() * sizeof(TCHAR));
 
@@ -111,9 +117,10 @@ bool DeployManager::SaveToRegistry()
 	return true;
 }
 
-void DeployManager::AddDeployApp(std::string appDirectory, std::string appExecutable)
+void DeployManager::AddDeployApp(std::string appName, std::string appDirectory, std::string appExecutable)
 {
-	mApps[appExecutable] = new DeployApp( appDirectory, appExecutable );
+	// get app name
+	mApps[appName] = new DeployApp( appName, appDirectory, appExecutable );
 }
 
 void DeployManager::ServerUpdate()
@@ -132,19 +139,15 @@ bool DeployManager::ServerSendAppListToClient(SOCKET clientSocket)
 	// send app count
 	char appCountStr[10]; _ltoa((long)mApps.size(), appCountStr, 10);
 	send(clientSocket, appCountStr, 10, 0);
-	//DBOUT("SERVER: sent filesize: " << filesizeStr << "\n");
 	if (recv(clientSocket, rec, 2, 0) <= 0)
 		return false;
-	//DBOUT("SERVER: received filesize ack\n");
 
 	for(std::map<std::string, DeployApp*>::iterator iterator = mApps.begin(); iterator != mApps.end(); iterator++) 
 	{
 		// send app name
 		send(clientSocket, iterator->first.c_str(), 256, 0);
-		//DBOUT("SERVER: sent filename: " << iterator->first.c_str() << "\n");
 		if (recv(clientSocket, rec, 2, 0) <= 0)
 			return false;
-		//DBOUT("SERVER: received filename ack\n");
 	}
 	return true;
 }
@@ -154,42 +157,15 @@ bool DeployManager::ServerCheckAppsOnClient(SOCKET clientSocket)
 	for(std::map<std::string, DeployApp*>::iterator iterator = mApps.begin(); iterator != mApps.end(); iterator++) 
 	{
 		// first check if client has app selected
-		if (iterator->second->ServerIsAppSelected(clientSocket))
+		if (!iterator->second->ServerIsAppSelected(clientSocket))
 			continue;
 
 		// if the app is selected, go ahead and update
 		if (!iterator->second->ServerUpdate(clientSocket))
 			return false;
+
+		// then start it up!
+		//DeployManager::instance()->StartApp(hClientSocket, "render_test.exe");
 	}
-	return true;
-}
-
-bool DeployManager::ServerSendToClient(SOCKET clientSocket)
-{
-	for(std::map<std::string, DeployApp*>::iterator iterator = mApps.begin(); iterator != mApps.end(); iterator++) 
-	{
-		if (!iterator->second->ServerSendToClient(clientSocket))
-			return false;
-	}
-	return true;
-}
-
-bool DeployManager::StartApp(SOCKET clientSocket, std::string appExecutable)
-{
-	// send command
-	char command[32] = "STARTAPP";
-	send(clientSocket, command, 32, 0);
-	char rec[32] = ""; 
-	if (recv(clientSocket, rec, 2, 0) <= 0)
-		return false;
-
-	// send executable name
-	char executableName[128] = "";
-	strcpy(executableName, appExecutable.c_str());
-	executableName[appExecutable.length()] = '\0';
-	send(clientSocket, executableName, 128, 0);
-	if (recv(clientSocket, rec, 2, 0) <= 0)
-		return false;
-
 	return true;
 }

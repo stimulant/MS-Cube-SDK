@@ -47,8 +47,8 @@ BOOL CTabPageServer::OnInitDialog()
 	// add pre-existing apps to list
 	for(std::map<std::string, DeployApp*>::iterator iterator = DeployManager::instance()->GetApps().begin(); iterator != DeployManager::instance()->GetApps().end(); iterator++) 
 	{
-		std::string fileName = iterator->first;
-		this->SendDlgItemMessageA(IDC_APPLIST, LB_ADDSTRING, 0, (LPARAM)fileName.c_str());
+		std::string appName = iterator->first;
+		this->SendDlgItemMessageA(IDC_APPLIST, LB_ADDSTRING, 0, (LPARAM)appName.c_str());
 	}
 
 	mAppListChanged = true;
@@ -100,9 +100,18 @@ void CTabPageServer::OnBnClickedAddApp()
 		strcpy(path, ofn.lpstrFile); strcpy(file, ofn.lpstrFile);
 		PathRemoveFileSpec(path);
 		PathStripPath(file);
-		this->SendDlgItemMessageA(IDC_APPLIST, LB_ADDSTRING, 0, (LPARAM)file);
-		DeployManager::instance()->AddDeployApp(path, file);
+
+		// get app name from final part of path
+		std::string appName = path;
+		const size_t last_slash_idx = appName.rfind('\\');
+		if (std::string::npos != last_slash_idx)
+			appName = appName.substr(last_slash_idx+1, appName.length());
+		else
+			appName = file;
+
+		DeployManager::instance()->AddDeployApp(appName, path, file);
 		DeployManager::instance()->SaveToRegistry();
+		this->SendDlgItemMessageA(IDC_APPLIST, LB_ADDSTRING, 0, (LPARAM)appName.c_str());
 		mAppListChanged = true;
 	}
 }
@@ -133,9 +142,6 @@ void CTabPageServer::Startup()
 	// start thread to update
 	HANDLE ServerUpdateThreadHandle = (HANDLE)_beginthreadex(0, 0, &ServerUpdateThread_wrapper, this, 0, 0);
 	SetThreadPriority(ServerUpdateThreadHandle, THREAD_PRIORITY_NORMAL);
-
-	// create DeployManager and create test app
-	//DeployManager::instance()->AddDeployApp("C:\\Users\\joel\\Desktop\\12_9_2014", "render_test.exe");
 }
 
 void CTabPageServer::Shutdown()
@@ -162,15 +168,7 @@ void CTabPageServer::ServerConnectThread()
 		if (SocketHelper::WaitForClient(mServerSocket, hClientSocket))
 		{
 			mClients.push_back(hClientSocket);
-
-			// send app list to client
-			//DeployManager::instance()->ServerSendAppListToClient(hClientSocket);
-
-			// send files to client
-			//DeployManager::instance()->ServerSendToClient(hClientSocket);
-
-			// start up the app
-			//DeployManager::instance()->StartApp(hClientSocket, "render_test.exe");
+			
 			mAppListChanged = true;
 		}
 		Sleep(100);

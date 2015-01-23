@@ -25,7 +25,7 @@ DeployFile::~DeployFile(void)
 {
 }
 
-bool DeployFile::ServerSendToClient(std::string rootDirector, SOCKET hSocket)
+bool DeployFile::ServerSendToClient(std::string appName, std::string rootDirector, SOCKET hSocket)
 {
 	DBOUT("SERVER: start sending file: " << mStrFileName << "\n");
 
@@ -42,9 +42,7 @@ bool DeployFile::ServerSendToClient(std::string rootDirector, SOCKET hSocket)
 		return false;
 
 	// send file path
-	std::string adjustedFilePath = mStrPath;
-	if (adjustedFilePath == "")
-		adjustedFilePath = ".\\";
+	std::string adjustedFilePath = appName + "\\" + mStrPath;
 	send(hSocket, adjustedFilePath.c_str(), adjustedFilePath.length(), 0);
 	if (recv(hSocket, rec, 2, 0) <= 0)
 		return false;
@@ -91,25 +89,31 @@ bool DeployFile::ServerSendToClient(std::string rootDirector, SOCKET hSocket)
 	return true;
 }
 
-bool DeployFile::ServerAskIfNeedsUpdate(std::string rootDirector, SOCKET hSocket, bool& doesNeedUpdate)
+bool sendString(SOCKET hSocket, std::string string)
+{
+	char str[MAX_PATH] = "";
+	strcpy(str, string.c_str());
+	str[string.length()] = '\0';
+	send(hSocket, str, MAX_PATH, 0);
+}
+
+bool DeployFile::ServerAskIfNeedsUpdate(std::string appName, std::string rootDirector, SOCKET hSocket, bool& doesNeedUpdate)
 {
 	// SEND COMMAND
-	char command[32] = "DOESFILENEEDUPDATE";
+	char command[32] = "ASKFILEUPDATE";
 	send(hSocket, command, 32, 0);
 	char rec[32] = ""; 
 	if (recv(hSocket, rec, 2, 0) <= 0)
 		return false;
 
 	// send file name
-	send(hSocket, mStrFileName.c_str(), mStrFileName.length(), 0);
+	sendString(hSocket, mStrFileName);
 	if (recv(hSocket, rec, 2, 0) <= 0)
 		return false;
 
 	// send file path
-	std::string adjustedFilePath = mStrPath;
-	if (adjustedFilePath == "")
-		adjustedFilePath = ".\\";
-	send(hSocket, adjustedFilePath.c_str(), adjustedFilePath.length(), 0);
+	std::string adjustedFilePath = appName + "\\" + mStrPath;
+	sendString(hSocket, adjustedFilePath);
 	if (recv(hSocket, rec, 2, 0) <= 0)
 		return false;
 
@@ -133,15 +137,15 @@ bool DeployFile::ServerAskIfNeedsUpdate(std::string rootDirector, SOCKET hSocket
 bool DeployFile::ClientDoesFileNeedUpdate(SOCKET hSocket)
 {
 	char rec[50] = "";
-	char filename[_MAX_PATH] = "";
-	char filepath[_MAX_PATH] = "";
+	char filename[MAX_PATH] = "";
+	char filepath[MAX_PATH] = "";
 
 	// receive file name
-	recv(hSocket, filename, _MAX_PATH, 0);
+	recv(hSocket, filename, MAX_PATH, 0);
 	send(hSocket, "OK", 2, 0);
 
 	// receive file path
-	recv(hSocket, filepath, _MAX_PATH, 0);
+	recv(hSocket, filepath, MAX_PATH, 0);
 	send(hSocket, "OK", 2, 0);
 
 	// receive file modified date
@@ -175,15 +179,15 @@ bool DeployFile::ClientDoesFileNeedUpdate(SOCKET hSocket)
 bool DeployFile::ClientReceiveFile(SOCKET hSocket)
 {
 	char rec[50] = "";
-	char filename[_MAX_PATH] = "";
-	char filepath[_MAX_PATH] = "";
+	char filename[MAX_PATH] = "";
+	char filepath[MAX_PATH] = "";
 
 	// receive file name
-	recv(hSocket, filename, _MAX_PATH, 0);
+	recv(hSocket, filename, MAX_PATH, 0);
 	send(hSocket, "OK", 2, 0);
 
 	// receive file path
-	recv(hSocket, filepath, _MAX_PATH, 0);
+	recv(hSocket, filepath, MAX_PATH, 0);
 	send(hSocket, "OK", 2, 0);
 
 	// receive file size

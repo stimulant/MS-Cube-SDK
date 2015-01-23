@@ -20,11 +20,9 @@ public:
 	bool SaveToRegistry();
 
 	std::map<std::string, DeployApp*>& GetApps() { return mApps; }
-	void AddDeployApp(std::string appDirectory, std::string appExecutable);
+	void AddDeployApp(std::string appName, std::string appDirectory, std::string appExecutable);
 	void ServerUpdate();
 	bool ServerSendAppListToClient(SOCKET clientSocket);
 	bool ServerCheckAppsOnClient(SOCKET clientSocket);
-	bool ServerSendToClient(SOCKET clientSocket);
-	bool StartApp(SOCKET clientSocket, std::string appExecutable);
 };
 

@@ -116,8 +116,8 @@ void CTabPageClient::ClientThread()
 			if (strcmp(command, "ISAPPSELECTED") == 0)
 			{
 				// receive app name
-				char appname[256] = "";
-				recv(mSocket, appname, 256, 0);
+				char appname[MAX_PATH] = "";
+				recv(mSocket, appname, MAX_PATH, 0);
 
 				// send back YS if this app name is selected
 				int curSel = this->SendDlgItemMessage(IDC_COMBO_APPS, CB_GETCURSEL, 0, 0);
@@ -125,7 +125,7 @@ void CTabPageClient::ClientThread()
 					send(mSocket, "NO", 2, 0);
 				else
 				{
-					char pFilename[_MAX_PATH];
+					char pFilename[MAX_PATH];
 					this->SendDlgItemMessage(IDC_COMBO_APPS, CB_GETLBTEXT, curSel, (LPARAM)pFilename);
 
 					if (strcmp(pFilename, appname) == 0)
@@ -148,15 +148,15 @@ void CTabPageClient::ClientThread()
 				// receive app names
 				for (int i=0; i<appCount; i++)
 				{
-					char appname[256] = "";
-					recv(mSocket, appname, 256, 0);
+					char appname[MAX_PATH] = "";
+					recv(mSocket, appname, MAX_PATH, 0);
 					mAppNames.push_back(appname);
 					send(mSocket, "OK", 2, 0);
 
 					this->SendDlgItemMessage(IDC_COMBO_APPS, CB_ADDSTRING, 0, (LPARAM)appname);
 				}
 			}
-			if (strcmp(command, "DOESFILENEEDUPDATE") == 0)
+			if (strcmp(command, "ASKFILEUPDATE") == 0)
 			{
 				// check if a file needs an update
 				if (!DeployFile::ClientDoesFileNeedUpdate(mSocket))
@@ -176,16 +176,26 @@ void CTabPageClient::ClientThread()
 			}
 			if (strcmp(command, "STARTAPP") == 0)
 			{
-				// receive executable name
-				char executableName[128] = "";
-				recv(mSocket, executableName, 128, 0);
-				DBOUT("CLIENT: starting executable: " << executableName << "\n");
+				// receive appName name
+				char appName[MAX_PATH] = "";
+				recv(mSocket, appName, MAX_PATH, 0);
+				DBOUT("CLIENT: starting app: " << appName << "\n");
 				send(mSocket, "OK", 2, 0);
-				//DBOUT("CLIENT: sent executable ack\n");
+
+				// receive executable name
+				char executableName[MAX_PATH] = "";
+				recv(mSocket, executableName, MAX_PATH, 0);
+				send(mSocket, "OK", 2, 0);
+
+				std::string appPath = "";
+				appPath += appName;
+				appPath += "\\";
+				appPath += executableName;
 
 				STARTUPINFO info={sizeof(info)};
 				PROCESS_INFORMATION processInfo;
-				CreateProcess(executableName, executableName, NULL, NULL, TRUE, 0, NULL, NULL, &info, &processInfo);
+				LPSTR s = const_cast<char *>(appPath.c_str());
+				CreateProcess(appName, s, NULL, NULL, TRUE, 0, NULL, NULL, &info, &processInfo);
 				/*
 				if (CreateProcess(path, cmd, NULL, NULL, TRUE, 0, NULL, NULL, &info, &processInfo))
 				{

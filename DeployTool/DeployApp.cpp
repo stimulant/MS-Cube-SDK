@@ -2,12 +2,11 @@
 #include "DeployApp.h"
 #include <windows.h>
 
-DeployApp::DeployApp(std::string appDirectory, std::string appExecutable)
+DeployApp::DeployApp(std::string appName, std::string appDirectory, std::string appExecutable)
 {
+	mAppName = appName;
 	mAppDirectory = appDirectory;
 	mAppExecutable = appExecutable;
-
-	AddDirectoryFiles(appDirectory, "");
 }
 
 DeployApp::~DeployApp(void)
@@ -50,7 +49,7 @@ bool DeployApp::AddDirectoryFiles(std::string rootDirectory, std::string directo
 
 			// we have a valid file, add it
 			std::string fileName = ffd.cFileName;
-			mfiles.push_back(new DeployFile(fileName, directory, ffd));
+			mFiles.push_back(new DeployFile(fileName, directory, ffd));
 		}
 	}
 	while (FindNextFile(hFind, &ffd) != 0);
@@ -69,10 +68,10 @@ bool DeployApp::ServerIsAppSelected(SOCKET clientSocket)
 		return false;
 
 	// send executable name
-	char executableName[128] = "";
-	strcpy(executableName, mAppExecutable.c_str());
-	executableName[mAppExecutable.length()] = '\0';
-	send(clientSocket, executableName, 128, 0);
+	char appName[MAX_PATH] = "";
+	strcpy(appName, mAppName.c_str());
+	appName[mAppName.length()] = '\0';
+	send(clientSocket, appName, MAX_PATH, 0);
 	if (recv(clientSocket, rec, 2, 0) <= 0)
 		return false;
 	
@@ -81,17 +80,21 @@ bool DeployApp::ServerIsAppSelected(SOCKET clientSocket)
 
 bool DeployApp::ServerUpdate(SOCKET clientSocket)
 {
-	for (unsigned int i=0; i<mfiles.size(); i++)
+	// do this every time to make sure we have a fresh list
+	mFiles.clear();
+	AddDirectoryFiles(mAppDirectory, "");
+
+	for (unsigned int i=0; i<mFiles.size(); i++)
 	{
 		// check if the app needs an update of this file
 		bool doesNeedUpdate = false;
-		if (!mfiles[i]->ServerAskIfNeedsUpdate(mAppDirectory, clientSocket, doesNeedUpdate))
+		if (!mFiles[i]->ServerAskIfNeedsUpdate(mAppName, mAppDirectory, clientSocket, doesNeedUpdate))
 			continue;
 
 		// send the file if so
 		if (doesNeedUpdate)
 		{
-			if (!mfiles[i]->ServerSendToClient(mAppDirectory, clientSocket))
+			if (!mFiles[i]->ServerSendToClient(mAppName, mAppDirectory, clientSocket))
 				return false;
 		}
 		Sleep(100);
@@ -102,12 +105,24 @@ bool DeployApp::ServerUpdate(SOCKET clientSocket)
 	return true;
 }
 
-bool DeployApp::ServerSendToClient(SOCKET clientSocket)
+bool DeployApp::ServerStartApp(SOCKET clientSocket)
 {
-	for (unsigned int i=0; i<mfiles.size(); i++)
-	{
-		if (!mfiles[i]->ServerSendToClient(mAppDirectory, clientSocket))
-			return false;
-	}
+	// send command
+	char command[32] = "STARTAPP";
+	send(clientSocket, command, 32, 0);
+	char rec[32] = ""; 
+	if (recv(clientSocket, rec, 2, 0) <= 0)
+		return false;
+
+	// send app name
+	send(clientSocket, mAppName.c_str(), mAppName.length(), 0);
+	if (recv(clientSocket, rec, 2, 0) <= 0)
+		return false;
+
+	// send executable name
+	send(clientSocket, mAppExecutable.c_str(), mAppExecutable.length(), 0);
+	if (recv(clientSocket, rec, 2, 0) <= 0)
+		return false;
+
 	return true;
 }
