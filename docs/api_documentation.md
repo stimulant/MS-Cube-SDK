@@ -17,7 +17,7 @@ A Kinect API stream consists of a sequence of messages. Each message has a 4-byt
 
 ### Body Update (command 0)
 
-The Body Update command sends a list of the bodies that the Kinect detects and all of their joint positions.
+The Body Update command sends a list of the bodies that the Kinect detects and all of their joint positions and orientations along with hand states for each of the bodies hands.
 Header that is present no matter how many bodies are present.
 
 | Byte   | Description
@@ -29,33 +29,78 @@ After this there is a repeating section for each body that indicates positions o
 
 | Byte   | Description
 |--------|----------------------------
-|0 		 | Skeleton index
-|1-12    | JointType_SpineBase XYZ position
-|13-24   | JointType_SpineMid XYZ position
-|25-36   | JointType_Neck XYZ position
-|37-48   | JointType_Head XYZ position
-|49-60   | JointType_ShoulderLeft XYZ position
-|61-72   | JointType_ElbowLeft XYZ position
-|73-84   | JointType_WristLeft XYZ position
-|85-96   | JointType_HandLeft XYZ position
-|97-108  | JointType_ShoulderRight XYZ position
-|109-120 | JointType_ElbowRight XYZ position
-|121-132 | JointType_WristRight XYZ position
-|133-144 | JointType_HandRight XYZ position
-|145-156 | JointType_HipLeft XYZ position
-|157-168 | JointType_KneeLeft XYZ position
-|169-180 | JointType_AnkleLeft XYZ position
-|181-192 | JointType_FootLeft XYZ position
-|193-204 | JointType_HipRight XYZ position
-|205-216 | JointType_KneeRight XYZ position
-|217-228 | JointType_AnkleRight XYZ position
-|229-140 | JointType_FootRight XYZ position
-|141-152 | JointType_SpineShoulder XYZ position
-|153-164 | JointType_HandTipLeft XYZ position
-|165-176 | JointType_ThumbLeft XYZ position
-|177-188 | JointType_HandTipRight XYZ position
-|189-200 | JointType_ThumbRight XYZ position
+|0-11    | JointType_SpineBase XYZ position
+|12-23   | JointType_SpineMid XYZ position
+|24-35   | JointType_Neck XYZ position
+|36-47   | JointType_Head XYZ position
+|48-59   | JointType_ShoulderLeft XYZ position
+|60-71   | JointType_ElbowLeft XYZ position
+|72-83   | JointType_WristLeft XYZ position
+|84-95   | JointType_HandLeft XYZ position
+|96-107  | JointType_ShoulderRight XYZ position
+|108-119 | JointType_ElbowRight XYZ position
+|120-131 | JointType_WristRight XYZ position
+|132-143 | JointType_HandRight XYZ position
+|144-155 | JointType_HipLeft XYZ position
+|156-167 | JointType_KneeLeft XYZ position
+|168-179 | JointType_AnkleLeft XYZ position
+|180-191 | JointType_FootLeft XYZ position
+|192-203 | JointType_HipRight XYZ position
+|204-215 | JointType_KneeRight XYZ position
+|216-227 | JointType_AnkleRight XYZ position
+|228-139 | JointType_FootRight XYZ position
+|140-151 | JointType_SpineShoulder XYZ position
+|152-163 | JointType_HandTipLeft XYZ position
+|164-175 | JointType_ThumbLeft XYZ position
+|176-187 | JointType_HandTipRight XYZ position
+|188-199 | JointType_ThumbRight XYZ position
 
+After this there is a repeating section for each body that indicates state for left and right hands:
+
+| Byte   | Description
+|--------|----------------------------
+|0-1     | Left Hand state
+|1-2     | Right Hand state
+
+States are encoded as byte values as follows:
+
+| Value  | State
+|--------|----------------------------
+|0       | Unknown
+|1       | NotTracked
+|2       | Open
+|3       | Closed
+|4       | Lasso
+
+After this there is a repeating section for each body that indicates orientations of all joints as four unit quaternions:
+
+| Byte   | Description
+|--------|----------------------------
+|0-15    | JointType_SpineBase XYZW orientation
+|16-31   | JointType_SpineMid XYZW orientation
+|32-47   | JointType_Neck XYZW orientation
+|48-63   | JointType_Head XYZW orientation
+|64-79   | JointType_ShoulderLeft XYZW orientation
+|80-95   | JointType_ElbowLeft XYZW orientation
+|96-111  | JointType_WristLeft XYZW orientation
+|112-127 | JointType_HandLeft XYZW orientation
+|128-143 | JointType_ShoulderRight XYZW orientation
+|144-159 | JointType_ElbowRight XYZW orientation
+|160-175 | JointType_WristRight XYZW orientation
+|176-191 | JointType_HandRight XYZW orientation
+|192-207 | JointType_HipLeft XYZW orientation
+|208-223 | JointType_KneeLeft XYZW orientation
+|224-239 | JointType_AnkleLeft XYZW orientation
+|240-255 | JointType_FootLeft XYZW orientation
+|256-271 | JointType_HipRight XYZW orientation
+|272-287 | JointType_KneeRight XYZW orientation
+|288-303 | JointType_AnkleRight XYZW orientation
+|304-319 | JointType_FootRight XYZW orientation
+|320-335 | JointType_SpineShoulder XYZW orientation
+|336-351 | JointType_HandTipLeft XYZW orientation
+|352-367 | JointType_ThumbLeft XYZW orientation
+|368-383 | JointType_HandTipRight XYZW orientation
+|384-399 | JointType_ThumbRight XYZW orientation
 
 ### Depth Update (command 1)
 
