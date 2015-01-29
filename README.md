@@ -10,7 +10,7 @@ The Microsoft Cube SDK provides the means to collect data from an array of Kinec
 ## Tools
 
 ### Kinect Transport
-To run KinectTransport, start the KinectTransport exe.  The app will immediately begin polling the Kinect device and sending data to whatever destination is specified.  Right clicking on the icon in the system tray will bring up options.  A different destination host and whether the app will transport skeleton and depth data can be specified in the options.
+To run KinectTransport, start the KinectTransport exe.  The app will immediately begin polling the Kinect device and sending data to whatever destination is specified.  Right clicking on the icon in the system tray will bring up options.  A different destination host and whether the app will transport body and depth data can be specified in the options.  Further documentation can be found [here](KinectTransport/README.md).
 
 ### Deploy Tool
 The DeployTool is designed to allow an executable to be pushed easily from one computer to each of the computers displaying content for the sides of the cube.  Further documentation can be found [here](DeployTool/README.md).
